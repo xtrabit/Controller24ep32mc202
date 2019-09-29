@@ -13,30 +13,25 @@
 // FICD
 #pragma config ICS = PGD1    // ICD Communication Channel Select bits->Communicate on PGEC1 and PGED1
 #pragma config JTAGEN = OFF    // JTAG Enable bit->JTAG is disabled
-
 // FPOR
 #pragma config ALTI2C1 = ON    // Alternate I2C1 pins->I2C1 mapped to ASDA1/ASCL1 pins
 #pragma config ALTI2C2 = ON    // Alternate I2C2 pins->I2C2 mapped to ASDA2/ASCL2 pins
 #pragma config WDTWIN = WIN25    // Watchdog Window Select bits->WDT Window is 25% of WDT period
-
 // FWDT
 #pragma config WDTPOST = PS32768    // Watchdog Timer Postscaler bits->1:32768
 #pragma config WDTPRE = PR128    // Watchdog Timer Prescaler bit->1:128
 #pragma config PLLKEN = ON    // PLL Lock Enable bit->Clock switch to PLL source will wait until the PLL lock signal is valid.
 #pragma config WINDIS = OFF    // Watchdog Timer Window Enable bit->Watchdog Timer in Non-Window mode
 #pragma config FWDTEN = OFF    // Watchdog Timer Enable bit->Watchdog timer enabled/disabled by user software
-
 // FOSC
 #pragma config POSCMD = NONE    // Primary Oscillator Mode Select bits->Primary Oscillator disabled
 #pragma config OSCIOFNC = ON    // OSC2 Pin Function bit->OSC2 is general purpose digital I/O pin
 #pragma config IOL1WAY = ON    // Peripheral pin select configuration->Allow only one reconfiguration
 #pragma config FCKSM = CSECMD    // Clock Switching Mode bits->Clock switching is enabled,Fail-safe Clock Monitor is disabled
-
 // FOSCSEL
 #pragma config FNOSC = FRC    // Oscillator Source Selection->FRC
 #pragma config PWMLOCK = OFF    // PWM Lock Enable bit->PWM registers may be written without key sequence
 #pragma config IESO = ON    // Two-speed Oscillator Start-up Enable bit->Start up device with FRC, then switch to user-selected oscillator source
-
 // FGS
 #pragma config GWRP = OFF    // General Segment Write-Protect bit->General Segment may be written
 #pragma config GCP = OFF    // General Segment Code-Protect bit->General Segment Code protect is Disabled
@@ -145,25 +140,19 @@ long gyro_adc_sum;
 unsigned int gyro_value_adc_ave;
 
 
-void __attribute__((interrupt, no_auto_psv)) _ISR _IC1Interrupt(void)   // 1.3 us
-{
+void __attribute__((interrupt, no_auto_psv)) _ISR _IC1Interrupt(void) {  // 1.3 us
     //LED_R = 1;
-    if (PORTBbits.RB5 == 0)
-    {
+    if (PORTBbits.RB5 == 0) {
         IC1BUF_temp1 = IC1BUF;
         gear_buf = IC1BUF_temp1 - IC1BUF_temp;
         SIGNAL_GEAR = 1;
-    }
-    else
-    {
+    } else {
         IC1BUF_temp = IC1BUF;
     }
-    while (IC1CON1bits.ICBNE == 1)
-    {
+    while (IC1CON1bits.ICBNE == 1) {
         temp = IC1BUF;
     }
-    if (gear_buf > 0xef00 || gear_buf < 0x8620)
-    {
+    if (gear_buf > 0xef00 || gear_buf < 0x8620) {
         IC1CON1bits.ICM = 0;
         Nop();
         Nop();
@@ -178,24 +167,18 @@ void __attribute__((interrupt, no_auto_psv)) _ISR _IC1Interrupt(void)   // 1.3 u
     //LED_R = 0;
 }
 
-void __attribute__((interrupt, no_auto_psv)) _ISR _IC2Interrupt(void)
-{
-    if (PORTBbits.RB4 == 0)
-    {
+void __attribute__((interrupt, no_auto_psv)) _ISR _IC2Interrupt(void) {
+    if (PORTBbits.RB4 == 0) {
         IC2BUF_temp1 = IC2BUF;
         elev_buf = IC2BUF_temp1 - IC2BUF_temp;
         SIGNAL_ELEV = 1;
-    }
-    else
-    {
+    } else {
         IC2BUF_temp = IC2BUF;
     }
-    while (IC2CON1bits.ICBNE == 1)
-    {
+    while (IC2CON1bits.ICBNE == 1) {
         temp = IC2BUF;
     }
-    if (elev_buf > 0xef00 || elev_buf < 0x8620)
-    {
+    if (elev_buf > 0xef00 || elev_buf < 0x8620) {
         IC2CON1bits.ICM = 0;
         Nop();
         Nop();
@@ -209,24 +192,18 @@ void __attribute__((interrupt, no_auto_psv)) _ISR _IC2Interrupt(void)
     IFS0bits.IC2IF = 0;
 }
 
-void __attribute__((interrupt, no_auto_psv)) _ISR _IC3Interrupt(void)
-{
-    if (PORTBbits.RB10 == 0)
-    {
+void __attribute__((interrupt, no_auto_psv)) _ISR _IC3Interrupt(void) {
+    if (PORTBbits.RB10 == 0) {
         IC3BUF_temp1 = IC3BUF;
         aile_buf = IC3BUF_temp1 - IC3BUF_temp;
         SIGNAL_AILE = 1;
-    }
-    else
-    {
+    } else {
         IC3BUF_temp = IC3BUF;
     }
-    while (IC3CON1bits.ICBNE == 1)
-    {
+    while (IC3CON1bits.ICBNE == 1) {
         temp = IC3BUF;
     }
-    if (aile_buf > 0xef00 || aile_buf < 0x8620)
-    {
+    if (aile_buf > 0xef00 || aile_buf < 0x8620) {
         IC3CON1bits.ICM = 0;
         Nop();
         Nop();
@@ -240,24 +217,18 @@ void __attribute__((interrupt, no_auto_psv)) _ISR _IC3Interrupt(void)
     IFS2bits.IC3IF = 0;
 }
 
-void __attribute__((interrupt, no_auto_psv)) _ISR _IC4Interrupt(void)
-{
-    if (PORTBbits.RB6 == 0)
-    {
+void __attribute__((interrupt, no_auto_psv)) _ISR _IC4Interrupt(void) {
+    if (PORTBbits.RB6 == 0) {
         IC4BUF_temp1 = IC4BUF;
         thro_buf = IC4BUF_temp1 - IC4BUF_temp;
         SIGNAL_THRO = 1;
-    }
-    else
-    {
+    } else {
         IC4BUF_temp = IC4BUF;
     }
-    while (IC4CON1bits.ICBNE == 1)
-    {
+    while (IC4CON1bits.ICBNE == 1) {
         temp = IC4BUF;
     }
-    if (thro_buf > 0xef00 || thro_buf < 0x8620)
-    {
+    if (thro_buf > 0xef00 || thro_buf < 0x8620) {
         IC4CON1bits.ICM = 0;
         Nop();
         Nop();
@@ -271,20 +242,16 @@ void __attribute__((interrupt, no_auto_psv)) _ISR _IC4Interrupt(void)
     IFS2bits.IC4IF = 0;
 }
 
-void __attribute__((__interrupt__, auto_psv)) _AD1Interrupt(void)   // every 30us; takes 2us
-{
+void __attribute__((__interrupt__, auto_psv)) _AD1Interrupt(void) {  // every 30us; takes 2us
     //LED_G = 1;
     adc_gyro0 = ADC1BUF0;
     adc_gyro = ADC1BUF1;
     gyro_value = adc_gyro - adc_gyro0;
-    if (gyro_inc_adc < 100) //was 100
-    {
+    if (gyro_inc_adc < 100) { //was 100
         gyro_value_adc_old = gyro_adc[(gyro_inc_adc)];
         gyro_adc[(gyro_inc_adc)] = gyro_value;
         gyro_adc_sum = gyro_adc_sum - gyro_value_adc_old + gyro_value;
-    }
-    else
-    {
+    } else {
         gyro_inc_adc = 0;
         gyro_value_adc_old = gyro_adc[(gyro_inc_adc)];
         gyro_adc[(gyro_inc_adc)] = gyro_value;
@@ -296,14 +263,10 @@ void __attribute__((__interrupt__, auto_psv)) _AD1Interrupt(void)   // every 30u
     //LED_G = 0;
 }
 
-void __attribute__((interrupt, no_auto_psv)) _T1Interrupt() // SPI output timer 250ms period
-{
-    if (spi_count_t1 < 8)
-    {
+void __attribute__((interrupt, no_auto_psv)) _T1Interrupt() { // SPI output timer 250ms period
+    if (spi_count_t1 < 8) {
         spi_count_t1++;
-    }
-    else
-    {
+    } else {
         spi_count_t1 = 0;
         if (display_digit < values_to_display) display_digit++;
         else display_digit = 0;
@@ -313,25 +276,20 @@ void __attribute__((interrupt, no_auto_psv)) _T1Interrupt() // SPI output timer 
     SPI1BUF = spi_digit3;
     SPI1BUF = spi_digit4;
 
-    if (wait_count < 4)
-    {
+    if (wait_count < 4) {
         if (wait != 0) wait_count++;
-    }
-    else
-    {
+    } else {
         wait_count = 0;
         wait = 0;
     }
     IFS0bits.T1IF = 0;
 
-    if (mcu_on == 0)
-    {
+    if (mcu_on == 0) {
         mcu_on = 1;
     }
 }
 
-void __attribute__((interrupt, no_auto_psv)) _T2Interrupt() // 100ms loss of signal output kill control timer
-{
+void __attribute__((interrupt, no_auto_psv)) _T2Interrupt() { // 100ms loss of signal output kill control timer
     if (SIGNAL_AILE == 1) SIGNAL_AILE = 2;
     else SIGNAL_AILE = 0;
 
@@ -344,8 +302,7 @@ void __attribute__((interrupt, no_auto_psv)) _T2Interrupt() // 100ms loss of sig
     if (SIGNAL_GEAR == 1) SIGNAL_GEAR = 2;
     else SIGNAL_GEAR = 0;
 
-    if (SIGNAL_AILE == 0 && SIGNAL_ELEV == 0)
-    {
+    if (SIGNAL_AILE == 0 && SIGNAL_ELEV == 0) {
         MOTOR_L = PDC_cen;
         MOTOR_R = PDC_cen;
         SIGNAL_CHECK = 0;
@@ -358,25 +315,20 @@ void __attribute__((interrupt, no_auto_psv)) _T2Interrupt() // 100ms loss of sig
     _T2IF = 0;
 }
 
-void __attribute__((interrupt, no_auto_psv)) _T3Interrupt() //
-{
+void __attribute__((interrupt, no_auto_psv)) _T3Interrupt() {
     T3CONbits.TON = 0;
     _T3IF = 0;
 }
 
-void __attribute__((interrupt, no_auto_psv)) _T4Interrupt() // Gyro_value calcs and value update timer; 2ms period; update every 20ms; 20us, 70us all parts
-{
+void __attribute__((interrupt, no_auto_psv)) _T4Interrupt() {// Gyro_value calcs and value update timer; 2ms period; update every 20ms; 20us, 70us all parts
     ///LED_R = 1;
 
     _T4IF = 0;
     gyro_value_adc_ave = (gyro_adc_sum + 625) / 100; //was 28/100 ;8/100
-    if (gyro_inc < 9)   // was 9
-    {
+    if (gyro_inc < 9) {  // was 9
         gyro[gyro_inc] = gyro_value_adc_ave;
         gyro_inc++;
-    }
-    else    //55 us
-    {
+    } else {   //55 us
         //LED_G = 1;
         gyro[gyro_inc] = gyro_value_adc_ave;
         gyro_value_ave = ((long) gyro[0] + gyro[1] + gyro[2] + gyro[3] + gyro[4] + gyro[5] + gyro[6] + gyro[7] + gyro[8] + gyro[9]) / 10; // 19 us
@@ -392,10 +344,8 @@ void __attribute__((interrupt, no_auto_psv)) _T4Interrupt() // Gyro_value calcs 
     //LED_R = 0;
 }
 
-int main(void)
-{
+int main(void) {
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////      pins
-
     LATA = 0x0000;  //Setting the Output Latch SFR(s)
     LATB = 0x0000;
     TRISA = 0x0003; //Setting the GPIO Direction SFR(s)
@@ -415,10 +365,7 @@ int main(void)
     RPINR7bits.IC2R = 0x0024; //RB4->IC2:IC2;
     __builtin_write_OSCCONL(OSCCON | 0x40); // lock   PPS
 
-
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////      oscillator
-
-
     CLKDIV = 0x3040; // FRCDIV FRC/1; PLLPRE 2; DOZE 1:8; PLLPOST 1:4; DOZEN disabled; ROI disabled;
     OSCTUN = 0x0000; // TUN Center frequency;
     REFOCON = 0x0000; // ROON disabled; ROSEL disabled; RODIV Base clock value; ROSSLP disabled;
@@ -434,16 +381,13 @@ int main(void)
     while (OSCCONbits.OSWEN != 0); // Wait for Clock switch to occur
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////      interrupt
-
     IPC3bits.AD1IP = 1; //    ADI: ADC1 Convert Done; Priority: 1
     IPC0bits.IC1IP = 1; //    ICI_INT: Input Compare 1; Priority: 1
     IPC9bits.IC3IP = 1; //    ICI_INT: Input Capture 3; Priority: 1
     IPC1bits.IC2IP = 1; //    ICI_INT: Input Capture 2; Priority: 1
     IPC9bits.IC4IP = 1; //    ICI_INT: Input Capture 4; Priority: 1
 
-
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////      IC1
-
     // ICSIDL disabled; ICM Edge Detect Capture; ICTSEL FOSC/2; ICI Every;
     IC1CON1 = 0x1C01;
     // SYNCSEL None; TRIGSTAT disabled; IC32 disabled; ICTRIG Sync;
@@ -452,7 +396,6 @@ int main(void)
     IEC0bits.IC1IE = 1;
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////      IC2
-
     // ICSIDL disabled; ICM Edge Detect Capture; ICTSEL FOSC/2; ICI Every;
     IC2CON1 = 0x1C01;
     // SYNCSEL None; TRIGSTAT disabled; IC32 disabled; ICTRIG Sync;
@@ -460,9 +403,7 @@ int main(void)
     IFS0bits.IC2IF = 0;
     IEC0bits.IC2IE = 1;
 
-
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////      IC3
-
     // ICSIDL disabled; ICM Edge Detect Capture; ICTSEL FOSC/2; ICI Every;
     IC3CON1 = 0x1C01;
     // SYNCSEL None; TRIGSTAT disabled; IC32 disabled; ICTRIG Sync;
@@ -470,18 +411,14 @@ int main(void)
     IFS2bits.IC3IF = 0;
     IEC2bits.IC3IE = 1;
 
-
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////      IC4
-
     // ICSIDL disabled; ICM Edge Detect Capture; ICTSEL FOSC/2; ICI Every;
     IC4CON1 = 0x1C01; // SYNCSEL None; TRIGSTAT disabled; IC32 disabled; ICTRIG Sync;
     IC4CON2 = 0x0000; //IC4CON1bits.ICTSEL = 1; //timer2 == 1;
     IFS2bits.IC4IF = 0;
     IEC2bits.IC4IE = 1; //IC4CON1bits.ICM = 1;
 
-
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////      SPI
-
     // MSTEN Master; DISSDO disabled; PPRE 4:1; SPRE 8:1; MODE16 disabled; SMP Middle; DISSCK disabled;
     //CKP Idle:Low, Active:High; CKE Idle to Active; SSEN disabled;
     SPI1CON1 = 0x0038; //was 0x0022; 0x0038 2us pulse
@@ -491,9 +428,7 @@ int main(void)
     SPI1STAT = 0x8014;
     //_FRMPOL = 0;
 
-
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////      ADC
-
     // ASAM enabled; ADDMABM disabled; ADSIDL disabled; DONE disabled; SIMSAM Sequential;
     // FORM Absolute decimal result, unsigned, right-justified; SAMP disabled;
     // SSRC Internal counter ends sampling and starts conversion; AD12B 12-bit; ADON enabled; SSRCG disabled;
@@ -518,7 +453,6 @@ int main(void)
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////      TMR1
     //   Timer 1 controls SPI output
-
     TMR1 = 0x0000; // period is about 250 ms
     PR1 = 0x793e;
     T1CON = 0x8030;
@@ -527,12 +461,9 @@ int main(void)
     T1CONbits.TON = 1;
 
     mcu_on = 0;
-    while (mcu_on == 0)
-    {
-    }
+    while (mcu_on == 0) {}
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////      PWM
-
     // PCLKDIV 2;
     PTCON2 = 0x0004;
     PTPER = 0xFFFF;
@@ -624,12 +555,8 @@ int main(void)
     _T3IE = 1;
     T3CONbits.TON = 0;
 
-
-
-
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////      TMR4
     // Gyro_value calcs and value update timer
-
     TMR4 = 0; //lsb
     T4CON = 0x0000;
     PR4 = 0xf876; //lsb; 0xf876 + tckps=0 == .002 sec period; tckps=1 == .016 sec period
@@ -638,10 +565,7 @@ int main(void)
     _T4IE = 1;
     T4CONbits.TON = 1;
 
-
-
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
     spi_count_t1 = 0;
     LED_G = 0;
     LED_R = 0;
@@ -681,22 +605,9 @@ int main(void)
     turn_deg_10 = 0;
     turn_deg = 0;
 
-
-    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     values_to_display = 1;
 
-    while (1)
-    {
+    while (1) {
         //LED_R = 1;
 
         //STOP();
@@ -729,20 +640,7 @@ int main(void)
     }
 }
 
-    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-void Display(unsigned int x)
-{
+void Display(unsigned int x) {
     spi_digit1 = 0x10 + (x & 0x000f);
     spi_digit2 = 0x20 + ((x & 0x00f0) >> 4);
     spi_digit3 = 0x30 + ((x & 0x0f00) >> 8);
@@ -750,17 +648,13 @@ void Display(unsigned int x)
 
 }
 
-void Display2(unsigned int x, unsigned int y)
-{
-    if (display_digit == 0)
-    {
+void Display2(unsigned int x, unsigned int y) {
+    if (display_digit == 0) {
         spi_digit1 = 0x90 + (x & 0x000f);
         spi_digit2 = 0x20 + ((x & 0x00f0) >> 4);
         spi_digit3 = 0x30 + ((x & 0x0f00) >> 8);
         spi_digit4 = 0x40 + ((x & 0xf000) >> 12);
-    }
-    else
-    {
+    } else {
         spi_digit1 = 0x10 + (y & 0x000f);
         spi_digit2 = 0xa0 + ((y & 0x00f0) >> 4);
         spi_digit3 = 0x30 + ((y & 0x0f00) >> 8);
@@ -769,8 +663,7 @@ void Display2(unsigned int x, unsigned int y)
 
 }
 
-void Display3(unsigned int x, unsigned int y, unsigned int z)
-{
+void Display3(unsigned int x, unsigned int y, unsigned int z) {
 
     switch (display_digit) {
         case 0:
@@ -794,8 +687,7 @@ void Display3(unsigned int x, unsigned int y, unsigned int z)
     }
 }
 
-void Display4(unsigned int x, unsigned int y, unsigned int z, unsigned int w)
-{
+void Display4(unsigned int x, unsigned int y, unsigned int z, unsigned int w) {
 
     switch (display_digit) {
         case 0:
@@ -825,47 +717,31 @@ void Display4(unsigned int x, unsigned int y, unsigned int z, unsigned int w)
     }
 }
 
-void Gyro_LEDS(void)
-{
-    if (gyro_value_ave > 0) //positive counterclockwise
-    {
+void Gyro_LEDS(void) {
+    if (gyro_value_ave > 0) {//positive counterclockwise
         LED_G = 0;
         LED_R = 1;
-    }
-    else
-    {
-        if (gyro_value_ave < 0)
-        {
+    } else {
+        if (gyro_value_ave < 0) {
             LED_G = 1;
             LED_R = 0;
-        }
-        else
-        {
+        } else {
             LED_G = 0;
             LED_R = 0;
         }
     }
 }
 
-int RCvalue_cond(int x)
-{
-    if (x > -RCvalue_DB && x < RCvalue_DB)
-    {
+int RCvalue_cond(int x) {
+    if (x > -RCvalue_DB && x < RCvalue_DB) {
         x = 0;
-    }
-    else
-    {
-        if (x > 0)
-        {
-            if (x > RCvalue_max)
-            {
+    } else {
+        if (x > 0) {
+            if (x > RCvalue_max) {
                 x = RCvalue_max;
             }
-        }
-        else
-        {
-            if (x < RCvalue_min)
-            {
+        } else {
+            if (x < RCvalue_min) {
                 x = RCvalue_min;
             }
         }
@@ -873,10 +749,8 @@ int RCvalue_cond(int x)
     return (x);
 }
 
-void Motor_OUT(void)
-{
-    if (SIGNAL_CHECK == 1)
-    {
+void Motor_OUT(void) {
+    if (SIGNAL_CHECK == 1) {
         //RCvalue = aile_buf - RCpulse_cen;   // 250 ns
         //RCvalue = RCvalue_cond(RCvalue);    // 1.2us
         MOTOR_L = PDC_cen + left_value / 8; // 500ns //PDC1 = 0x1758 + RCvalue / 7.98;     //12.5us //PDC1 = 0x1758 + ((long)RCvalue * 100) / 798;    // 18us
@@ -884,16 +758,13 @@ void Motor_OUT(void)
         //RCvalue = elev_buf - RCpulse_cen;   // 250 ns
         //RCvalue = RCvalue_cond(RCvalue);    // 1.2us
         MOTOR_R = PDC_cen - right_value / 8;
-    }
-    else
-    {
+    } else {
         MOTOR_L = PDC_cen;
         MOTOR_R = PDC_cen;
     }
 }
 
-void Signal_MIX(void)
-{
+void Signal_MIX(void) {
     aile_value = aile_buf - RCpulse_cen;
     aile_value = RCvalue_cond(aile_value);
 
@@ -906,13 +777,10 @@ void Signal_MIX(void)
     gear_value = gear_buf - RCpulse_cen;
     gear_value = RCvalue_cond(gear_value);
 
-    if (gear_value < 0)
-    {
+    if (gear_value < 0) {
         left_value = -elev_value + aile_value;
         right_value = -elev_value - aile_value;
-    }
-    else
-    {
+    } else {
         left_value = elev_value + aile_value;
         right_value = elev_value - aile_value;
     }
@@ -921,63 +789,47 @@ void Signal_MIX(void)
     right_value = RCvalue_cond(right_value);
 }
 
-void Test_Gyro_MIN_MAX(void)
-{
-    if (rudd_left == 1)
-    {
+void Test_Gyro_MIN_MAX(void) {
+    if (rudd_left == 1) {
         test_min = 0x0000;
         test_max = 0x0000;
     }
-
-    if (gyro_value > test_max)
-    {
+    if (gyro_value > test_max) {
         test_max = gyro_value;
     }
-    if (gyro_value < test_min)
-    {
+    if (gyro_value < test_min) {
         test_min = gyro_value;
     }
 }
 
-void Test_MIN_MAX(int x)
-{
-    if (rudd_left == 1)
-    {
+void Test_MIN_MAX(int x) {
+    if (rudd_left == 1) {
         test_min = 0x0000;
         test_max = 0x0000;
     }
-
-    if (x > test_max)
-    {
+    if (x > test_max) {
         test_max = x;
     }
-    if (x < test_min)
-    {
+    if (x < test_min) {
         test_min = x;
     }
 }
-void Test_MIN_MAX_unsigned(unsigned int x)
-{
-    if (rudd_left == 1)
-    {
+
+void Test_MIN_MAX_unsigned(unsigned int x) {
+    if (rudd_left == 1) {
         test_min = 0xffff;
         test_max = 0x0000;
     }
-
-    if (x > test_max)
-    {
+    if (x > test_max) {
         test_max = x;
     }
-    if (x < test_min)
-    {
+    if (x < test_min) {
         test_min = x;
     }
 }
 
-/*void STOP(void)
-{
-    if (bt_extend == 1)
-    {
+/*void STOP(void) {
+    if (bt_extend == 1) {
         //T4CONbits.TON = 0;
         //TMR5HLD = 0;
         //TMR5 = 0x0000;
@@ -986,19 +838,14 @@ void Test_MIN_MAX_unsigned(unsigned int x)
         MOTOR_L = PDC_cen;
         MOTOR_R = PDC_cen;
     }
-
-    if (bt_retract == 1)
-    {
+    if (bt_retract == 1) {
         turn_deg = 0;
     }
 }*/
 
-void Uturn(void)
-{
-    if (test_spin_on == 0)
-    {
-        if ((rudd_left == 1 || rudd_right == 1) && wait != 1)
-        {
+void Uturn(void) {
+    if (test_spin_on == 0) {
+        if ((rudd_left == 1 || rudd_right == 1) && wait != 1) {
             //LED_G = 1;
             //LED_R = 1;
             test_spin_on = 1;
@@ -1013,51 +860,34 @@ void Uturn(void)
             //gyro_inc ++;
             gyro_update = 0;
             gyro_break = 0;
-        }
-        else
-        {
+        } else {
             Signal_MIX();
             Motor_OUT();
         }
-    }
-    else
-    {
-
-        if (gyro_update == 1)
-        {
-
+    } else {
+        if (gyro_update == 1) {
             //turn_deg = turn_deg + turn_deg_100;
             //gyro[gyro_inc] = gyro_value;
-            if (gyro_break == 1)
-            {
+            if (gyro_break == 1) {
                 //turn_deg = turn_deg + (gyro[gyro_inc] - gyro[gyro_inc - 1]) * 0.732;
-                if (uturn_counter >= 0)
-                {
+                if (uturn_counter >= 0) {
                     gyro_break = 0;
                     //gyro_inc = 0;
                     if (turn_deg > 0) turn_dir = 1; // positive is ccw left
                     else turn_dir = 0;
                     turn_deg = 0;
-                }
-                else
-                {
+                } else {
                     //gyro_inc ++;
                 }
-            }
-            else
-            {
-                if (uturn_counter < 2)
-                {
+            } else {
+                if (uturn_counter < 2) {
                     //LED_G = 0;
-                    if (rudd_left == 1)
-                    {
+                    if (rudd_left == 1) {
                         //if (LED_G == 1) LED_G = 0;
                         //else LED_G = 1;
                         MOTOR_L = PDC_cen + RCvalue_min / 8; //Cvalue_min / 80) * (uturn_counter - 5);
                         MOTOR_R = PDC_cen + RCvalue_min / 8; //(RCvalue_min / 80) * (uturn_counter - 5);
-                    }
-                    else
-                    {
+                    } else {
                         //if (LED_R == 1) LED_R = 0;
                         //else LED_R = 1;
                         MOTOR_L = PDC_cen + RCvalue_max / 8; //(RCvalue_max / 80) * (uturn_counter - 5);
@@ -1065,15 +895,11 @@ void Uturn(void)
                     }
                     //turn_deg = turn_deg + gyro[gyro_inc] * 0.732;
                     //gyro_inc ++;
-                }
-                else
-                {
+                } else {
                     //gyro_inc = 0;
                     brake_estimate = (long) gyro_value * gyro_value * 16 / 10000; // 122/100000
-                    if (turn_deg >= 0)
-                    {
-                        if ((turn_deg + brake_estimate) > 1800)
-                        {
+                    if (turn_deg >= 0) {
+                        if ((turn_deg + brake_estimate) > 1800) {
                             //LED_G = 0;
                             MOTOR_L = PDC_cen;
                             MOTOR_R = PDC_cen;
@@ -1081,11 +907,8 @@ void Uturn(void)
                             //test_spin_on = 0;
                             //turn_deg = turn_deg + brake_estimate;
                         }
-                    }
-                    else
-                    {
-                        if ((turn_deg - brake_estimate) < -1800)
-                        {
+                    } else {
+                        if ((turn_deg - brake_estimate) < -1800) {
                             //LED_R = 0;
                             MOTOR_L = PDC_cen;
                             MOTOR_R = PDC_cen;
@@ -1099,16 +922,12 @@ void Uturn(void)
             uturn_counter++;
             gyro_update = 0;
             wait = 1;
-            if (final == 1)
-            {
+            if (final == 1) {
                 //turn_deg = turn_deg + turn_deg_100;
-                if (gyro_value > -gyro_deadband && gyro_value < gyro_deadband)
-                {
+                if (gyro_value > -gyro_deadband && gyro_value < gyro_deadband) {
                     test_spin_on = 0;
                     final = 0;
-                }
-                else
-                {
+                } else {
 
                 }
             }
@@ -1116,10 +935,8 @@ void Uturn(void)
     }
 }
 
-void angle_tracker(void)
-{
-    if (gyro_update == 1)
-    {
+void angle_tracker(void) {
+    if (gyro_update == 1) {
         //if (gyro_value >= -gyro_deadband*2 && gyro_value <= gyro_deadband*2) gyro_value = 0;
         turn_deg = turn_deg + turn_deg_100;
         gyro_update = 0;
@@ -1127,8 +944,7 @@ void angle_tracker(void)
     }
 }
 
-int hextobcd(int x)
-{
+int hextobcd(int x) {
     unsigned int td1;
     unsigned int td2;
     unsigned int td3;
@@ -1153,20 +969,14 @@ int hextobcd(int x)
     return (tdt);
 }
 
-void Rudder_con(void) // positive is actually left
-{
-    if (thro_value > 10000)
-    {
+void Rudder_con(void) { // positive is actually left
+    if (thro_value > 10000) {
         rudd_left = 0;
         rudd_right = 1;
-    }
-    else if (thro_value < -10000)
-    {
+    } else if (thro_value < -10000) {
         rudd_left = 1;
         rudd_right = 0;
-    }
-    else
-    {
+    } else {
         rudd_left = 0;
         rudd_right = 0;
     }

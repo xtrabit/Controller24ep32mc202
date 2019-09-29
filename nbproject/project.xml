@@ -6,7 +6,7 @@
             <name>Controller24ep32mc202</name>
             <creation-uuid>bd5b8c41-2ef0-48f5-a438-e145111348d0</creation-uuid>
             <make-project-type>0</make-project-type>
-            <c-extensions/>
+            <c-extensions>c</c-extensions>
             <cpp-extensions/>
             <header-extensions/>
             <asminc-extensions/>
