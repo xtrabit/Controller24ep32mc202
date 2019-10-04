@@ -8,7 +8,8 @@
 #include <stdint.h>
 #include <p24EP32MC202.h>
 //#include <stdbool.h>
-//#include <stdlib.h>
+#include <string.h>
+// #include <stdlib.h>
 
 // FICD
 #pragma config ICS = PGD1    // ICD Communication Channel Select bits->Communicate on PGEC1 and PGED1
@@ -42,6 +43,8 @@
 #define LED_R LATAbits.LATA4
 #define MOTOR_L PDC1
 #define MOTOR_R PDC2
+#define DELAY_105uS asm volatile ("REPEAT, #4201"); Nop(); // 105uS delay
+#define NEWLINE 0xA
 
 void Display(unsigned int x);
 void Display2(unsigned int x, unsigned int y);
@@ -59,13 +62,19 @@ void Rudder_con(void);
 void Test_Gyro_MIN_MAX(void);
 void Test_MIN_MAX(int x);
 void Test_MIN_MAX_unsigned(unsigned int x);
+void UART_send(void);
+unsigned char value_to_uart(char value[], unsigned char pos, unsigned char len);
 
+char UART_send_trigger = 0;
+char UART_done = 1;
 char mcu_on;
 int spi_count_t1;   //SPI timer
 char spi_digit1;
 char spi_digit2;
 char spi_digit3;
 char spi_digit4;
+char spi_digit[4];
+int spi_digit_inc;
 char display_digit;
 char values_to_display;
 //int adc_batt;
@@ -264,29 +273,70 @@ void __attribute__((__interrupt__, auto_psv)) _AD1Interrupt(void) {  // every 30
 }
 
 void __attribute__((interrupt, no_auto_psv)) _T1Interrupt() { // SPI output timer 250ms period
-    if (spi_count_t1 < 8) {
-        spi_count_t1++;
-    } else {
-        spi_count_t1 = 0;
-        if (display_digit < values_to_display) display_digit++;
-        else display_digit = 0;
-    }
-    SPI1BUF = spi_digit1;
-    SPI1BUF = spi_digit2;
-    SPI1BUF = spi_digit3;
-    SPI1BUF = spi_digit4;
+    // if (spi_count_t1 < 8) {
+    //     spi_count_t1++;
+    // } else {
+    //     spi_count_t1 = 0;
+    //     if (display_digit < values_to_display) display_digit++;
+    //     else display_digit = 0;
+    // }
+    // SPI1BUF = spi_digit1;
+    // SPI1BUF = spi_digit2;
+    // SPI1BUF = spi_digit3;
+    // SPI1BUF = spi_digit4;
+    // LED_G = LED_G ? 0 : 1;
+    // LED_R = LED_R ? 0 : 1;
+    // if (U1STAbits.UTXBF == 0) {
+    //     LED_G = 1;
+    //     LED_R = 1;
+    // }
+    // if (U1STAbits.UTXBF == 0) {
+    //     U1TXREG = spi_digit1;
+    // }
+    // if (U1STAbits.UTXBF == 0) {
+    //     U1TXREG = spi_digit2;
+    // }
+    // if (U1STAbits.UTXBF == 0) {
+    //     U1TXREG = spi_digit3;
+    // }
+    // if (U1STAbits.UTXBF == 0) {
+    //     U1TXREG = spi_digit4;
+    // }
 
-    if (wait_count < 4) {
-        if (wait != 0) wait_count++;
-    } else {
-        wait_count = 0;
-        wait = 0;
-    }
+
+    // if (wait_count < 4) {
+    //     if (wait != 0) wait_count++;
+    // } else {
+    //     wait_count = 0;
+    //     wait = 0;
+    // }
     IFS0bits.T1IF = 0;
 
     if (mcu_on == 0) {
         mcu_on = 1;
     }
+    LED_G = LED_G ? 0 : 1;
+    UART_send_trigger = 1;
+    // UART_send();
+    // if (U1STAbits.UTXEN) {
+    //     if (U1STAbits.TRMT && spi_digit_inc == 3) {
+    //         // Display(hextobcd(turn_deg));
+    //         Display(hextobcd(gyro_value_ave));
+    //         while (spi_digit_inc >= 0) {
+    //             if (!U1STAbits.UTXBF) {
+    //                 U1TXREG = spi_digit[spi_digit_inc] + 48;
+    //                 // if (spi_digit_inc == 1) {
+    //                 //     while (U1STAbits.UTXBF) {}
+    //                 //     U1TXREG = '.';
+    //                 // }
+    //                 spi_digit_inc--;
+    //             }
+    //         }
+    //         spi_digit_inc = 3;
+    //         while (U1STAbits.UTXBF) {}
+    //         U1TXREG = 0x0A;
+    //     }
+    // }
 }
 
 void __attribute__((interrupt, no_auto_psv)) _T2Interrupt() { // 100ms loss of signal output kill control timer
@@ -344,12 +394,24 @@ void __attribute__((interrupt, no_auto_psv)) _T4Interrupt() {// Gyro_value calcs
     //LED_R = 0;
 }
 
+void __attribute__((interrupt, no_auto_psv)) _U1TXInterrupt() {
+    if (UART_send_trigger || !UART_done) {
+        UART_send_trigger = 0;
+        UART_send();
+
+    }
+    IFS0bits.U1TXIF = 0; // Clear TX Interrupt flag
+    // U1TXREG = 'a'; // Transmit one character
+    // LED_G = 1;
+}
+
 int main(void) {
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////      pins
     LATA = 0x0000;  //Setting the Output Latch SFR(s)
     LATB = 0x0000;
     TRISA = 0x0003; //Setting the GPIO Direction SFR(s)
-    TRISB = 0x047D;
+    // TRISB = 0x047D; // SPI RB7 - SCK output
+    TRISB = 0x04FD; // UART RB7 - U1RX input
     CNPDA = 0x0000; //Setting the Weak Pull Up and Weak Pull Down SFR(s)
     CNPDB = 0x0470;
     CNPUA = 0x0000;
@@ -363,6 +425,9 @@ int main(void) {
     RPINR8bits.IC3R = 0x002A; //RB10->IC3:IC3;
     RPINR7bits.IC1R = 0x0025; //RB5->IC1:IC1;
     RPINR7bits.IC2R = 0x0024; //RB4->IC2:IC2;
+    RPINR18bits.U1RXR = 0x0027; //RB7
+    // RPOR3 = 0x0001; //RB8->U1TX
+    RPOR3bits.RP40R = 0x01; //RB8->U1TX
     __builtin_write_OSCCONL(OSCCON | 0x40); // lock   PPS
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////      oscillator
@@ -421,11 +486,11 @@ int main(void) {
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////      SPI
     // MSTEN Master; DISSDO disabled; PPRE 4:1; SPRE 8:1; MODE16 disabled; SMP Middle; DISSCK disabled;
     //CKP Idle:Low, Active:High; CKE Idle to Active; SSEN disabled;
-    SPI1CON1 = 0x0038; //was 0x0022; 0x0038 2us pulse
+    //SPI1CON1 = 0x0038; //was 0x0022; 0x0038 2us pulse
     // SPIFSD disabled; SPIBEN enabled; FRMPOL disabled; FRMDLY disabled; FRMEN disabled;
-    SPI1CON2 = 0x0001; //0x0001
+    //SPI1CON2 = 0x0001; //0x0001
     // SISEL SPI_INT_TRMT_COMPLETE; SPIROV disabled; SPIEN enabled; SPISIDL disabled;
-    SPI1STAT = 0x8014;
+    //SPI1STAT = 0x8014;
     //_FRMPOL = 0;
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////      ADC
@@ -565,6 +630,30 @@ int main(void) {
     _T4IE = 1;
     T4CONbits.TON = 1;
 
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////      UART1
+    LED_R = 1;
+    U1BRG = 0x0010;
+    U1MODEbits.ABAUD = 0;
+    U1MODEbits.PDSEL = 0x00;
+    U1MODEbits.STSEL = 0;
+    U1MODEbits.RTSMD = 0;
+    U1MODEbits.BRGH = 0;
+    U1STAbits.UTXINV = 0;
+    // IFS0bits.U1TXIF = 0;
+    // IEC0bits.U1TXIE = 1;
+    U1MODEbits.UARTEN = 1;
+    // DELAY_105uS
+    long i;
+    for (i = 0; i < 1000000; i++) {
+        Nop();
+    }
+    U1STAbits.UTXEN = 1;
+
+    for (i = 0; i < 1000000; i++) {
+        Nop();
+    }
+    // U1TXREG = 'a';
+
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     spi_count_t1 = 0;
     LED_G = 0;
@@ -606,19 +695,127 @@ int main(void) {
     turn_deg = 0;
 
     values_to_display = 1;
+    spi_digit_inc = 3;
 
     while (1) {
-        //LED_R = 1;
+        //LED_R = LED_R ? 0 : 1;
+        if (UART_send_trigger || !UART_done) {
+            UART_send_trigger = 0;
+            UART_send();
 
+        }
         //STOP();
-        Uturn();
-        Rudder_con();
+        //Uturn();
+        //Rudder_con();
+
+
+        // U1TXREG = "1";
+        // U1TXREG = 0x0A;
+        // if (U1STAbits.UTXBF == 0 && received) {
+        //     LED_R = 0;
+        //     // U1TXREG = 'a';
+        //     char roger[] = "roger";
+        //     char j = 0;
+        //     for (j = 0; j < 5; j++) {
+        //         while (U1STAbits.UTXBF == 1) {}
+        //         U1TXREG = roger[j];
+        //     }
+        //     while (U1STAbits.UTXBF == 1) {}
+        //     U1TXREG = 0x0A;
+        //     received = 0;
+        // } else {
+        //     LED_R = 1;
+        // }
+        // if(U1STAbits.URXDA == 1)
+        // {
+        //     // int i;
+
+        //     LED_G = 1;
+        //     // for (i = 0; i < 1000; i++) {
+        //     //     Nop();
+        //     // }
+        //     // U1TXREG = U1RXREG;
+        //     temp_read = U1RXREG;
+        //     received = 1;
+        //     // for (i = 0; i < 1000; i++) {
+        //     //     Nop();
+        //     // }
+        //     // U1TXREG = temp_read;
+        // }
+
+
+
+
+        // if (U1STAbits.UTXBF == 1) {
+        //     LED_R = 1;
+        //     // U1TXREG = 0x01;
+        // }
+        // if (U1STAbits.TRMT == 0) {
+        //     LED_R = 1;
+        //     // U1TXREG = 0x01;
+        // } else {
+        //     LED_R = 0;
+        // }
+        // if (U1STAbits.PERR == 1) {
+        //     LED_R = 1;
+        //     // U1TXREG = 0x01;
+        // } else {
+        //     LED_R = 0;
+        // }
+        // if (U1STAbits.FERR == 1) {
+        //     LED_R = 1;
+        //     // U1TXREG = 0x01;
+        // } else {
+        //     LED_R = 0;
+        // }
+        // if (IFS0bits.U1TXIF == 1) {
+        //     LED_G = 0;
+        // }
+
+        // if(U1STAbits.FERR == 1)
+        // {
+        // continue;
+        // }
+        /* Must clear the overrun error to keep UART receiving */
+        // if(U1STAbits.OERR == 1)
+        // {
+        //     U1STAbits.OERR = 0;
+        // }
+        /* Get the data */
+        // if(U1STAbits.URXDA == 1)
+        // {
+        //     int i;
+
+        //     LED_G = 1;
+        //     // for (i = 0; i < 1000; i++) {
+        //     //     Nop();
+        //     // }
+        //     // U1TXREG = U1RXREG;
+        //     temp_read = U1RXREG;
+        //     // for (i = 0; i < 1000; i++) {
+        //     //     Nop();
+        //     // }
+        //     // U1TXREG = temp_read;
+        // }
+        // U1TXREG = 'a';
+        // if (U1STAbits.UTXBF == 0) {
+        //     U1TXREG = spi_digit1;
+        // }
+        // if (U1STAbits.UTXBF == 0) {
+        //     U1TXREG = spi_digit2;
+        // }
+        // if (U1STAbits.UTXBF == 0) {
+        //     U1TXREG = spi_digit3;
+        // }
+        // if (U1STAbits.UTXBF == 0) {
+        //     U1TXREG = spi_digit4;
+        // }
 
         //Signal_MIX();
         //Motor_OUT();
         //angle_tracker();
         //Display(adc_gyro0);
-        Display(hextobcd(turn_deg));
+        //Display(hextobcd(turn_deg));
         //Display(hextobcd(brake_estimate));
         //Display(hextobcd(gyro_value));
         //Display(hextobcd(gyro0_value_adc_ave));
@@ -635,16 +832,20 @@ int main(void) {
         //Display4 (-test_min, test_max, tt, tt2);
         //Test_Gyro_MIN_MAX();
 
-        Gyro_LEDS();
+        //Gyro_LEDS();
         //LED_R = 0;
     }
 }
 
 void Display(unsigned int x) {
-    spi_digit1 = 0x10 + (x & 0x000f);
-    spi_digit2 = 0x20 + ((x & 0x00f0) >> 4);
-    spi_digit3 = 0x30 + ((x & 0x0f00) >> 8);
-    spi_digit4 = 0x40 + ((x & 0xf000) >> 12);
+    // spi_digit[0] = 0x10 + (x & 0x000f);
+    // spi_digit[1] = 0x20 + ((x & 0x00f0) >> 4);
+    // spi_digit[2] = 0x30 + ((x & 0x0f00) >> 8);
+    // spi_digit[3] = 0x40 + ((x & 0xf000) >> 12);
+    spi_digit[0] = x & 0x000f;
+    spi_digit[1] = (x & 0x00f0) >> 4;
+    spi_digit[2] = (x & 0x0f00) >> 8;
+    spi_digit[3] = (x & 0xf000) >> 12;
 
 }
 
@@ -718,7 +919,7 @@ void Display4(unsigned int x, unsigned int y, unsigned int z, unsigned int w) {
 }
 
 void Gyro_LEDS(void) {
-    if (gyro_value_ave > 0) {//positive counterclockwise
+    if (gyro_value_ave > 0) { //positive counterclockwise
         LED_G = 0;
         LED_R = 1;
     } else {
@@ -981,4 +1182,128 @@ void Rudder_con(void) { // positive is actually left
         rudd_right = 0;
     }
     //if (rudd_right == 1) turn_deg_10 = 0;
+}
+
+void UART_send(void) {
+    if (U1STAbits.UTXEN) {
+        #define key_len 7
+        // unsigned char key_len_v = 7;
+        #define val_len 8
+        #define headers_len 2
+        typedef struct {
+            char key[key_len];
+            char value[val_len];
+            char done;
+            char started;
+        } str_header;
+
+        static str_header headers[2] = {
+            {
+                "angle:",
+                "        ",
+                0,
+                0
+            },
+            {
+                "gyro :",
+                "        ",
+                0,
+                0
+            }
+        };
+
+        // static const char headers[2][7] = {
+        //     "angle:",
+        //     "gyro :"
+        // };
+
+        unsigned char header = 0;
+        unsigned char pos = 0;
+        // const char headers_len = 2;
+        // const char key_len = 7;
+        if (!U1STAbits.UTXBF) {
+            UART_done = 0;
+            for (;header < headers_len; header++) {
+                // for (; pos < key_len; pos++) {
+                //     if (!U1STAbits.UTXBF) {
+                //         if (pos == key_len - 1) {
+                //             U1TXREG = NEWLINE;
+                //         } else {
+                //             U1TXREG = headers[header].key[pos];
+                //         }
+                //     } else {
+                //         break;
+                //     }
+                // }
+                // pos = value_to_uart(pos, key_len_v);
+                if (!headers[header].done) {
+                    headers[header].started = 1;
+                    pos = value_to_uart(headers[header].key, pos, key_len);
+                    if (pos < key_len && U1STAbits.UTXBF) break;
+                    if (pos == key_len) {
+                        pos = 0;
+                        headers[header].done = 1;
+                    }
+                }
+                if (!headers[header].done) {
+                    pos = value_to_uart(headers[header].value, pos, val_len);
+                    if (pos < key_len && U1STAbits.UTXBF) break;
+                    if (pos == key_len) {
+                        pos = 0;
+                        headers[header].done = 1;
+                    }
+                }
+            }
+            if (header >= headers_len) {
+                header = 0;
+            }
+            if (header == 0 && pos == 0) {
+                UART_done = 1;
+                while (U1STAbits.UTXBF) {}
+                U1TXREG = NEWLINE;
+            }
+        }
+    }
+
+
+    // char lastname[25];
+    // char firstname[25];
+
+    // strcpy(lastname,"John");
+    // strcpy(firstname,"Doe");
+
+
+
+
+
+
+
+    // global char test_str[] = "test_str"; // 5811
+
+    // static char *s = "test_str"; // 5817
+    // static const char *s = "test_str"; // 5817
+    // const char *s = "test_str"; // 5811
+    // char *s = "test_str"; // 5811
+
+    // static const char test_str[] = "test_str"; // 5805
+//     static char test_str[] = "test_str"; // 5811
+//     const char test_str[] = "test_str"; // 5826
+//     char test_str[] = "test_str"; // 5826
+
+//     static const char test_str[9] = {1,2,3,4,5,6,7,8,9}; // 5805
+//     static char test_str[9] = {1,2,3,4,5,6,7,8,9}; // 5811
+//     const char test_str[9] = {1,2,3,4,5,6,7,8,9}; // 5805
+     // char test_str[9] = {1,2,3,4,5,6,7,8,9}; // 5817
+}
+
+// unsigned char value_to_uart(unsigned char pos, unsigned char len) {
+unsigned char value_to_uart(char value[], unsigned char pos, unsigned char len) {
+    for (; pos < len; pos++) {
+        if (!U1STAbits.UTXBF) {
+            U1TXREG = value[pos];
+        } else {
+            break;
+        }
+    }
+    return pos;
 }

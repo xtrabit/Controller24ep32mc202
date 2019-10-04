@@ -78,20 +78,21 @@ xc16-ld 1.35 (A)
 
 section                    address   length (PC units)   length (bytes) (dec)
 -------                    -------   -----------------   --------------------
-.text                        0x200               0x586           0x849  (2121)
-.text                        0x786               0x8b2           0xd0b  (3339)
-.dinit                      0x1038                 0x8             0xc  (12)
+.text                        0x200               0x584           0x846  (2118)
+.text                        0x784               0xa54           0xf7e  (3966)
+.dinit                      0x11d8                0x26            0x39  (57)
 
-                 Total "program" memory used (bytes):         0x1560  (5472) 16%
+                 Total "program" memory used (bytes):         0x17fd  (6141) 18%
 
 
 "data" Memory  [Origin = 0x1000, Length = 0x1000]
 
 section                    address      alignment gaps    total length  (dec)
 -------                    -------      --------------    -------------------
-.nbss                       0x1000                   0           0x154  (340)
+.nbss                       0x1000                   0           0x15a  (346)
+.ndata                      0x115a                   0            0x24  (36)
 
-                 Total "data" memory used (bytes):          0x154  (340) 8%
+                 Total "data" memory used (bytes):          0x17e  (382) 9%
 
 
 Dynamic Memory Usage
@@ -99,224 +100,238 @@ Dynamic Memory Usage
 region                     address                      maximum length  (dec)
 ------                     -------                      ---------------------
 heap                             0                                   0  (0)
-stack                       0x1154                               0xeac  (3756)
+stack                       0x117e                               0xe82  (3714)
 
-                 Maximum dynamic memory (bytes):          0xeac  (3756)
+                 Maximum dynamic memory (bytes):          0xe82  (3714)
 
 
 External Symbols in Data Memory (by address):
 
-                    0x1000                  _mcu_on
+                    0x1000                  _UART_send_trigger
+                    0x1001                  _mcu_on
                     0x1002                  _spi_count_t1
                     0x1004                  _spi_digit1
                     0x1005                  _spi_digit2
                     0x1006                  _spi_digit3
                     0x1007                  _spi_digit4
-                    0x1008                  _display_digit
-                    0x1009                  _values_to_display
-                    0x100a                  _adc_gyro
-                    0x100c                  _adc_gyro0
-                    0x100e                  _aile_buf
-                    0x1010                  _elev_buf
-                    0x1012                  _thro_buf
-                    0x1014                  _gear_buf
-                    0x1016                  _aile_value
-                    0x1018                  _elev_value
-                    0x101a                  _thro_value
-                    0x101c                  _gear_value
-                    0x101e                  _gyro_value
-                    0x1020                  _gyro_value_ave
-                    0x1022                  _gyro_deadband
-                    0x1024                  _temp
-                    0x1026                  _IC1BUF_temp
-                    0x1028                  _IC2BUF_temp
-                    0x102a                  _IC3BUF_temp
-                    0x102c                  _IC4BUF_temp
-                    0x102e                  _IC1BUF_temp1
-                    0x1030                  _IC2BUF_temp1
-                    0x1032                  _IC3BUF_temp1
-                    0x1034                  _IC4BUF_temp1
-                    0x1036                  _RCpulse_min
-                    0x1038                  _RCpulse_cen
-                    0x103a                  _RCpulse_max
-                    0x103c                  _RCswing
-                    0x103e                  _RCvalue_min
-                    0x1040                  _RCvalue_max
-                    0x1042                  _RCvalue_DB
-                    0x1044                  _SIGNAL_AILE
-                    0x1045                  _SIGNAL_ELEV
-                    0x1046                  _SIGNAL_THRO
-                    0x1047                  _SIGNAL_GEAR
-                    0x1048                  _SIGNAL_CHECK
-                    0x104a                  _PDC_cen
-                    0x104c                  _left_value
-                    0x104e                  _right_value
-                    0x1050                  _test_min
-                    0x1052                  _test_max
-                    0x1054                  _uturn_counter
-                    0x1056                  _gyro
-                    0x106a                  _gyro_inc
-                    0x106b                  _gyro_update
-                    0x106c                  _gyro_break
-                    0x106e                  _turn_deg
-                    0x1070                  _turn_deg_10
-                    0x1074                  _turn_deg_100
-                    0x1078                  _turn_dir
-                    0x107a                  _brake_estimate
-                    0x107c                  _wait
-                    0x107d                  _test_spin_on
-                    0x107e                  _wait_count
-                    0x1080                  _final
-                    0x1081                  _rudd_left
-                    0x1082                  _rudd_right
-                    0x1083                  _gyro_inc_adc
-                    0x1084                  _gyro_value_adc_old
-                    0x1086                  _gyro_adc
-                    0x114e                  _gyro_adc_sum
-                    0x1152                  _gyro_value_adc_ave
+                    0x1008                  _spi_digit
+                    0x100c                  _spi_digit_inc
+                    0x100e                  _display_digit
+                    0x100f                  _values_to_display
+                    0x1010                  _adc_gyro
+                    0x1012                  _adc_gyro0
+                    0x1014                  _aile_buf
+                    0x1016                  _elev_buf
+                    0x1018                  _thro_buf
+                    0x101a                  _gear_buf
+                    0x101c                  _aile_value
+                    0x101e                  _elev_value
+                    0x1020                  _thro_value
+                    0x1022                  _gear_value
+                    0x1024                  _gyro_value
+                    0x1026                  _gyro_value_ave
+                    0x1028                  _gyro_deadband
+                    0x102a                  _temp
+                    0x102c                  _IC1BUF_temp
+                    0x102e                  _IC2BUF_temp
+                    0x1030                  _IC3BUF_temp
+                    0x1032                  _IC4BUF_temp
+                    0x1034                  _IC1BUF_temp1
+                    0x1036                  _IC2BUF_temp1
+                    0x1038                  _IC3BUF_temp1
+                    0x103a                  _IC4BUF_temp1
+                    0x103c                  _RCpulse_min
+                    0x103e                  _RCpulse_cen
+                    0x1040                  _RCpulse_max
+                    0x1042                  _RCswing
+                    0x1044                  _RCvalue_min
+                    0x1046                  _RCvalue_max
+                    0x1048                  _RCvalue_DB
+                    0x104a                  _SIGNAL_AILE
+                    0x104b                  _SIGNAL_ELEV
+                    0x104c                  _SIGNAL_THRO
+                    0x104d                  _SIGNAL_GEAR
+                    0x104e                  _SIGNAL_CHECK
+                    0x1050                  _PDC_cen
+                    0x1052                  _left_value
+                    0x1054                  _right_value
+                    0x1056                  _test_min
+                    0x1058                  _test_max
+                    0x105a                  _uturn_counter
+                    0x105c                  _gyro
+                    0x1070                  _gyro_inc
+                    0x1071                  _gyro_update
+                    0x1072                  _gyro_break
+                    0x1074                  _turn_deg
+                    0x1076                  _turn_deg_10
+                    0x107a                  _turn_deg_100
+                    0x107e                  _turn_dir
+                    0x1080                  _brake_estimate
+                    0x1082                  _wait
+                    0x1083                  _test_spin_on
+                    0x1084                  _wait_count
+                    0x1086                  _final
+                    0x1087                  _rudd_left
+                    0x1088                  _rudd_right
+                    0x1089                  _gyro_inc_adc
+                    0x108a                  _gyro_value_adc_old
+                    0x108c                  _gyro_adc
+                    0x1154                  _gyro_adc_sum
+                    0x1158                  _gyro_value_adc_ave
+                    0x115a                  _UART_done
 
 External Symbols in Data Memory (by name):
 
-                    0x1026                  _IC1BUF_temp
-                    0x102e                  _IC1BUF_temp1
-                    0x1028                  _IC2BUF_temp
-                    0x1030                  _IC2BUF_temp1
-                    0x102a                  _IC3BUF_temp
-                    0x1032                  _IC3BUF_temp1
-                    0x102c                  _IC4BUF_temp
-                    0x1034                  _IC4BUF_temp1
-                    0x104a                  _PDC_cen
-                    0x1038                  _RCpulse_cen
-                    0x103a                  _RCpulse_max
-                    0x1036                  _RCpulse_min
-                    0x103c                  _RCswing
-                    0x1042                  _RCvalue_DB
-                    0x1040                  _RCvalue_max
-                    0x103e                  _RCvalue_min
-                    0x1044                  _SIGNAL_AILE
-                    0x1048                  _SIGNAL_CHECK
-                    0x1045                  _SIGNAL_ELEV
-                    0x1047                  _SIGNAL_GEAR
-                    0x1046                  _SIGNAL_THRO
-                    0x100a                  _adc_gyro
-                    0x100c                  _adc_gyro0
-                    0x100e                  _aile_buf
-                    0x1016                  _aile_value
-                    0x107a                  _brake_estimate
-                    0x1008                  _display_digit
-                    0x1010                  _elev_buf
-                    0x1018                  _elev_value
-                    0x1080                  _final
-                    0x1014                  _gear_buf
-                    0x101c                  _gear_value
-                    0x1056                  _gyro
-                    0x1086                  _gyro_adc
-                    0x114e                  _gyro_adc_sum
-                    0x106c                  _gyro_break
-                    0x1022                  _gyro_deadband
-                    0x106a                  _gyro_inc
-                    0x1083                  _gyro_inc_adc
-                    0x106b                  _gyro_update
-                    0x101e                  _gyro_value
-                    0x1152                  _gyro_value_adc_ave
-                    0x1084                  _gyro_value_adc_old
-                    0x1020                  _gyro_value_ave
-                    0x104c                  _left_value
-                    0x1000                  _mcu_on
-                    0x104e                  _right_value
-                    0x1081                  _rudd_left
-                    0x1082                  _rudd_right
+                    0x102c                  _IC1BUF_temp
+                    0x1034                  _IC1BUF_temp1
+                    0x102e                  _IC2BUF_temp
+                    0x1036                  _IC2BUF_temp1
+                    0x1030                  _IC3BUF_temp
+                    0x1038                  _IC3BUF_temp1
+                    0x1032                  _IC4BUF_temp
+                    0x103a                  _IC4BUF_temp1
+                    0x1050                  _PDC_cen
+                    0x103e                  _RCpulse_cen
+                    0x1040                  _RCpulse_max
+                    0x103c                  _RCpulse_min
+                    0x1042                  _RCswing
+                    0x1048                  _RCvalue_DB
+                    0x1046                  _RCvalue_max
+                    0x1044                  _RCvalue_min
+                    0x104a                  _SIGNAL_AILE
+                    0x104e                  _SIGNAL_CHECK
+                    0x104b                  _SIGNAL_ELEV
+                    0x104d                  _SIGNAL_GEAR
+                    0x104c                  _SIGNAL_THRO
+                    0x115a                  _UART_done
+                    0x1000                  _UART_send_trigger
+                    0x1010                  _adc_gyro
+                    0x1012                  _adc_gyro0
+                    0x1014                  _aile_buf
+                    0x101c                  _aile_value
+                    0x1080                  _brake_estimate
+                    0x100e                  _display_digit
+                    0x1016                  _elev_buf
+                    0x101e                  _elev_value
+                    0x1086                  _final
+                    0x101a                  _gear_buf
+                    0x1022                  _gear_value
+                    0x105c                  _gyro
+                    0x108c                  _gyro_adc
+                    0x1154                  _gyro_adc_sum
+                    0x1072                  _gyro_break
+                    0x1028                  _gyro_deadband
+                    0x1070                  _gyro_inc
+                    0x1089                  _gyro_inc_adc
+                    0x1071                  _gyro_update
+                    0x1024                  _gyro_value
+                    0x1158                  _gyro_value_adc_ave
+                    0x108a                  _gyro_value_adc_old
+                    0x1026                  _gyro_value_ave
+                    0x1052                  _left_value
+                    0x1001                  _mcu_on
+                    0x1054                  _right_value
+                    0x1087                  _rudd_left
+                    0x1088                  _rudd_right
                     0x1002                  _spi_count_t1
+                    0x1008                  _spi_digit
                     0x1004                  _spi_digit1
                     0x1005                  _spi_digit2
                     0x1006                  _spi_digit3
                     0x1007                  _spi_digit4
-                    0x1024                  _temp
-                    0x1052                  _test_max
-                    0x1050                  _test_min
-                    0x107d                  _test_spin_on
-                    0x1012                  _thro_buf
-                    0x101a                  _thro_value
-                    0x106e                  _turn_deg
-                    0x1070                  _turn_deg_10
-                    0x1074                  _turn_deg_100
-                    0x1078                  _turn_dir
-                    0x1054                  _uturn_counter
-                    0x1009                  _values_to_display
-                    0x107c                  _wait
-                    0x107e                  _wait_count
+                    0x100c                  _spi_digit_inc
+                    0x102a                  _temp
+                    0x1058                  _test_max
+                    0x1056                  _test_min
+                    0x1083                  _test_spin_on
+                    0x1018                  _thro_buf
+                    0x1020                  _thro_value
+                    0x1074                  _turn_deg
+                    0x1076                  _turn_deg_10
+                    0x107a                  _turn_deg_100
+                    0x107e                  _turn_dir
+                    0x105a                  _uturn_counter
+                    0x100f                  _values_to_display
+                    0x1082                  _wait
+                    0x1084                  _wait_count
 
 External Symbols in Program Memory (by address):
 
                   0x000200                  __resetPRI
                   0x00023c                  __psv_init
-                  0x000248                  __data_init_extended
                   0x000248                  __data_init
+                  0x000248                  __data_init_extended
                   0x0002fa                  __IC1Interrupt
                   0x000366                  __IC2Interrupt
                   0x0003d0                  __IC3Interrupt
                   0x00043c                  __IC4Interrupt
                   0x0004a8                  __AD1Interrupt
                   0x000556                  __T1Interrupt
-                  0x0005c0                  __T2Interrupt
-                  0x000626                  __T3Interrupt
-                  0x000630                  __T4Interrupt
-                  0x000742                  __DefaultInterrupt
-                  0x000748                  ___divsi3
-                  0x000766                  ___udivsi3
-                  0x000786                  _main
-                  0x000a40                  _Display
-                  0x000a74                  _Display2
-                  0x000ae6                  _Display3
-                  0x000b9a                  _Display4
-                  0x000c90                  _Gyro_LEDS
-                  0x000cb2                  _RCvalue_cond
-                  0x000cf2                  _Motor_OUT
-                  0x000d2a                  _Signal_MIX
-                  0x000d9e                  _Test_Gyro_MIN_MAX
-                  0x000dc6                  _Test_MIN_MAX
-                  0x000df0                  _Test_MIN_MAX_unsigned
-                  0x000e18                  _Uturn
-                  0x000f62                  _angle_tracker
-                  0x000f7c                  _hextobcd
-                  0x00100e                  _Rudder_con
+                  0x000592                  __T2Interrupt
+                  0x0005f8                  __T3Interrupt
+                  0x000602                  __T4Interrupt
+                  0x000714                  __U1TXInterrupt
+                  0x000740                  __DefaultInterrupt
+                  0x000746                  ___divsi3
+                  0x000764                  ___udivsi3
+                  0x000784                  _main
+                  0x000aac                  _Display
+                  0x000ad8                  _Display2
+                  0x000b4a                  _Display3
+                  0x000bfe                  _Display4
+                  0x000cf4                  _Gyro_LEDS
+                  0x000d16                  _RCvalue_cond
+                  0x000d56                  _Motor_OUT
+                  0x000d8e                  _Signal_MIX
+                  0x000e02                  _Test_Gyro_MIN_MAX
+                  0x000e2a                  _Test_MIN_MAX
+                  0x000e54                  _Test_MIN_MAX_unsigned
+                  0x000e7c                  _Uturn
+                  0x000fc6                  _angle_tracker
+                  0x000fe0                  _hextobcd
+                  0x001072                  _Rudder_con
+                  0x00109c                  _UART_send
+                  0x0011a0                  _value_to_uart
                   0x0057fa                  __FGS.sec
 
 External Symbols in Program Memory (by name):
 
-                  0x000a40                  _Display
-                  0x000a74                  _Display2
-                  0x000ae6                  _Display3
-                  0x000b9a                  _Display4
-                  0x000c90                  _Gyro_LEDS
-                  0x000cf2                  _Motor_OUT
-                  0x000cb2                  _RCvalue_cond
-                  0x00100e                  _Rudder_con
-                  0x000d2a                  _Signal_MIX
-                  0x000d9e                  _Test_Gyro_MIN_MAX
-                  0x000dc6                  _Test_MIN_MAX
-                  0x000df0                  _Test_MIN_MAX_unsigned
-                  0x000e18                  _Uturn
+                  0x000aac                  _Display
+                  0x000ad8                  _Display2
+                  0x000b4a                  _Display3
+                  0x000bfe                  _Display4
+                  0x000cf4                  _Gyro_LEDS
+                  0x000d56                  _Motor_OUT
+                  0x000d16                  _RCvalue_cond
+                  0x001072                  _Rudder_con
+                  0x000d8e                  _Signal_MIX
+                  0x000e02                  _Test_Gyro_MIN_MAX
+                  0x000e2a                  _Test_MIN_MAX
+                  0x000e54                  _Test_MIN_MAX_unsigned
+                  0x00109c                  _UART_send
+                  0x000e7c                  _Uturn
                   0x0004a8                  __AD1Interrupt
-                  0x000742                  __DefaultInterrupt
+                  0x000740                  __DefaultInterrupt
                   0x0057fa                  __FGS.sec
                   0x0002fa                  __IC1Interrupt
                   0x000366                  __IC2Interrupt
                   0x0003d0                  __IC3Interrupt
                   0x00043c                  __IC4Interrupt
                   0x000556                  __T1Interrupt
-                  0x0005c0                  __T2Interrupt
-                  0x000626                  __T3Interrupt
-                  0x000630                  __T4Interrupt
-                  0x000748                  ___divsi3
-                  0x000766                  ___udivsi3
+                  0x000592                  __T2Interrupt
+                  0x0005f8                  __T3Interrupt
+                  0x000602                  __T4Interrupt
+                  0x000714                  __U1TXInterrupt
+                  0x000746                  ___divsi3
+                  0x000764                  ___udivsi3
                   0x000248                  __data_init
                   0x000248                  __data_init_extended
                   0x00023c                  __psv_init
                   0x000200                  __resetPRI
-                  0x000f62                  _angle_tracker
-                  0x000f7c                  _hextobcd
-                  0x000786                  _main
+                  0x000fc6                  _angle_tracker
+                  0x000fe0                  _hextobcd
+                  0x000784                  _main
+                  0x0011a0                  _value_to_uart
 
 Memory Configuration
 
@@ -366,7 +381,7 @@ LOAD c:/program files (x86)/microchip/xc16/v1.35/bin/bin/../../lib\libfx-elf.a
                   0x000002          0x2 SHORT 0x0 ((ABSOLUTE (__reset) >> 0x10) & 0x7f)
                   0x000003          0x2 SHORT 0x0
 
-.text             0x000200        0x586
+.text             0x000200        0x584
  *(.init)
  .init            0x000200         0x48 c:/program files (x86)/microchip/xc16/v1.35/bin/bin/../../lib\liblega-pic30-elf.a(crt0_extendedep.o)
                   0x000200                  __resetPRI
@@ -378,30 +393,31 @@ LOAD c:/program files (x86)/microchip/xc16/v1.35/bin/bin/../../lib\libfx-elf.a
  *(.user_init)
  *(.handle)
  *(.isr*)
- .isr.text        0x0002fa        0x448 build/default/production/main.o
+ .isr.text        0x0002fa        0x446 build/default/production/main.o
                   0x0002fa                  __IC1Interrupt
                   0x000366                  __IC2Interrupt
                   0x0003d0                  __IC3Interrupt
                   0x00043c                  __IC4Interrupt
                   0x0004a8                  __AD1Interrupt
                   0x000556                  __T1Interrupt
-                  0x0005c0                  __T2Interrupt
-                  0x000626                  __T3Interrupt
-                  0x000630                  __T4Interrupt
- .isr             0x000742          0x4 default_isr
-                  0x000742                  __DefaultInterrupt
+                  0x000592                  __T2Interrupt
+                  0x0005f8                  __T3Interrupt
+                  0x000602                  __T4Interrupt
+                  0x000714                  __U1TXInterrupt
+ .isr             0x000740          0x4 default_isr
+                  0x000740                  __DefaultInterrupt
  *(.libc)
  *(.libm)
  *(.libdsp)
  *(.lib*)
  .libpic30_crt_start_mode
-                  0x000746          0x2 c:/program files (x86)/microchip/xc16/v1.35/bin/bin/../../lib\liblega-pic30-elf.a(crt_start_mode_normalep.Leo)
-                  0x000746                  __crt_start_mode
-                  0x000746                  __crt_start_mode_normal
- .libm.divsi3     0x000748         0x1e c:/program files (x86)/microchip/xc16/v1.35/bin/bin/../../lib\libm-elf.a(divsi3.epeo)
-                  0x000748                  ___divsi3
- .libm.udivsi3    0x000766         0x20 c:/program files (x86)/microchip/xc16/v1.35/bin/bin/../../lib\libm-elf.a(udivsi3.epeo)
-                  0x000766                  ___udivsi3
+                  0x000744          0x2 c:/program files (x86)/microchip/xc16/v1.35/bin/bin/../../lib\liblega-pic30-elf.a(crt_start_mode_normalep.Leo)
+                  0x000744                  __crt_start_mode
+                  0x000744                  __crt_start_mode_normal
+ .libm.divsi3     0x000746         0x1e c:/program files (x86)/microchip/xc16/v1.35/bin/bin/../../lib\libm-elf.a(divsi3.epeo)
+                  0x000746                  ___divsi3
+ .libm.udivsi3    0x000764         0x20 c:/program files (x86)/microchip/xc16/v1.35/bin/bin/../../lib\libm-elf.a(udivsi3.epeo)
+                  0x000764                  ___udivsi3
 
 usercode
  *(usercode)
@@ -423,7 +439,7 @@ __FOSCSEL
 
 __FGS             0x0057fa          0x2
  *(__FGS.sec*)
- __FGS.sec        0x0057fa          0x2 /CW/_FGSsõ
+ __FGS.sec        0x0057fa          0x2 /CW/_FGS∞Ôê
                   0x0057fa                  __FGS.sec
 
 __FUID0
@@ -441,26 +457,26 @@ __FUID3
 .comment
  *(.comment)
 
-.debug_info       0x000000       0x3fcf
+.debug_info       0x000000       0x4824
  *(.debug_info)
- .debug_info      0x000000       0x3fcf build/default/production/main.o
+ .debug_info      0x000000       0x4824 build/default/production/main.o
  *(.gnu.linkonce.wi.*)
 
-.debug_abbrev     0x000000        0x210
+.debug_abbrev     0x000000        0x21a
  *(.debug_abbrev)
- .debug_abbrev    0x000000        0x210 build/default/production/main.o
+ .debug_abbrev    0x000000        0x21a build/default/production/main.o
 
-.debug_line       0x000000        0x332
+.debug_line       0x000000        0x37e
  *(.debug_line)
- .debug_line      0x000000        0x332 build/default/production/main.o
+ .debug_line      0x000000        0x37e build/default/production/main.o
 
-.debug_frame      0x000000        0x33a
+.debug_frame      0x000000        0x3bc
  *(.debug_frame)
- .debug_frame     0x000000        0x33a build/default/production/main.o
+ .debug_frame     0x000000        0x3bc build/default/production/main.o
 
-.debug_str        0x000000        0x469
+.debug_str        0x000000        0x4ad
  *(.debug_str)
- .debug_str       0x000000        0x469 build/default/production/main.o
+ .debug_str       0x000000        0x4ad build/default/production/main.o
 
 .debug_loc
  *(.debug_loc)
@@ -469,10 +485,10 @@ __FUID3
  *(.debug_macinfo)
 
 .debug_pubnames
-                  0x000000        0x5b0
+                  0x000000        0x627
  *(.debug_pubnames)
  .debug_pubnames
-                  0x000000        0x5b0 build/default/production/main.o
+                  0x000000        0x627 build/default/production/main.o
 
 .debug_ranges
  *(.debug_ranges)
@@ -1532,98 +1548,105 @@ LOAD c:/program files (x86)/microchip/xc16/v1.35/bin/bin/../../lib\libm-elf.a
 LOAD c:/program files (x86)/microchip/xc16/v1.35/bin/bin/../../lib\liblega-c-elf.a
 END GROUP
 OUTPUT(dist/default/production/Controller24ep32mc202.X.production.elf elf32-pic30)
-LOAD /CW/_FGSsõ
+LOAD /CW/_FGS∞Ôê
 LOAD default_isr
 LOAD data_init
 
 .debug_pubtypes
-                  0x000018        0x37a
+                  0x000018        0x3fc
  .debug_pubtypes
-                  0x000018        0x37a build/default/production/main.o
+                  0x000018        0x3fc build/default/production/main.o
 
 __c30_signature
-                  0x000392         0x1e
+                  0x000414         0x1e
  __c30_signature
-                  0x000392          0x6 build/default/production/main.o
+                  0x000414          0x6 build/default/production/main.o
  __c30_signature
-                  0x000398          0x6 c:/program files (x86)/microchip/xc16/v1.35/bin/bin/../../lib\liblega-pic30-elf.a(crt0_extendedep.o)
+                  0x00041a          0x6 c:/program files (x86)/microchip/xc16/v1.35/bin/bin/../../lib\liblega-pic30-elf.a(crt0_extendedep.o)
  __c30_signature
-                  0x00039e          0x6 c:/program files (x86)/microchip/xc16/v1.35/bin/bin/../../lib\liblega-pic30-elf.a(data_init_extended.o)
+                  0x000420          0x6 c:/program files (x86)/microchip/xc16/v1.35/bin/bin/../../lib\liblega-pic30-elf.a(data_init_extended.o)
  __c30_signature
-                  0x0003a4          0x6 c:/program files (x86)/microchip/xc16/v1.35/bin/bin/../../lib\libm-elf.a(divsi3.epeo)
+                  0x000426          0x6 c:/program files (x86)/microchip/xc16/v1.35/bin/bin/../../lib\libm-elf.a(divsi3.epeo)
  __c30_signature
-                  0x0003aa          0x6 c:/program files (x86)/microchip/xc16/v1.35/bin/bin/../../lib\libm-elf.a(udivsi3.epeo)
+                  0x00042c          0x6 c:/program files (x86)/microchip/xc16/v1.35/bin/bin/../../lib\libm-elf.a(udivsi3.epeo)
 
-.nbss               0x1000        0x154
- .nbss              0x1000        0x154 build/default/production/main.o
-                    0x1000                  _mcu_on
+.nbss               0x1000        0x15a
+ .nbss              0x1000        0x15a build/default/production/main.o
+                    0x1000                  _UART_send_trigger
+                    0x1001                  _mcu_on
                     0x1002                  _spi_count_t1
                     0x1004                  _spi_digit1
                     0x1005                  _spi_digit2
                     0x1006                  _spi_digit3
                     0x1007                  _spi_digit4
-                    0x1008                  _display_digit
-                    0x1009                  _values_to_display
-                    0x100a                  _adc_gyro
-                    0x100c                  _adc_gyro0
-                    0x100e                  _aile_buf
-                    0x1010                  _elev_buf
-                    0x1012                  _thro_buf
-                    0x1014                  _gear_buf
-                    0x1016                  _aile_value
-                    0x1018                  _elev_value
-                    0x101a                  _thro_value
-                    0x101c                  _gear_value
-                    0x101e                  _gyro_value
-                    0x1020                  _gyro_value_ave
-                    0x1022                  _gyro_deadband
-                    0x1024                  _temp
-                    0x1026                  _IC1BUF_temp
-                    0x1028                  _IC2BUF_temp
-                    0x102a                  _IC3BUF_temp
-                    0x102c                  _IC4BUF_temp
-                    0x102e                  _IC1BUF_temp1
-                    0x1030                  _IC2BUF_temp1
-                    0x1032                  _IC3BUF_temp1
-                    0x1034                  _IC4BUF_temp1
-                    0x1036                  _RCpulse_min
-                    0x1038                  _RCpulse_cen
-                    0x103a                  _RCpulse_max
-                    0x103c                  _RCswing
-                    0x103e                  _RCvalue_min
-                    0x1040                  _RCvalue_max
-                    0x1042                  _RCvalue_DB
-                    0x1044                  _SIGNAL_AILE
-                    0x1045                  _SIGNAL_ELEV
-                    0x1046                  _SIGNAL_THRO
-                    0x1047                  _SIGNAL_GEAR
-                    0x1048                  _SIGNAL_CHECK
-                    0x104a                  _PDC_cen
-                    0x104c                  _left_value
-                    0x104e                  _right_value
-                    0x1050                  _test_min
-                    0x1052                  _test_max
-                    0x1054                  _uturn_counter
-                    0x1056                  _gyro
-                    0x106a                  _gyro_inc
-                    0x106b                  _gyro_update
-                    0x106c                  _gyro_break
-                    0x106e                  _turn_deg
-                    0x1070                  _turn_deg_10
-                    0x1074                  _turn_deg_100
-                    0x1078                  _turn_dir
-                    0x107a                  _brake_estimate
-                    0x107c                  _wait
-                    0x107d                  _test_spin_on
-                    0x107e                  _wait_count
-                    0x1080                  _final
-                    0x1081                  _rudd_left
-                    0x1082                  _rudd_right
-                    0x1083                  _gyro_inc_adc
-                    0x1084                  _gyro_value_adc_old
-                    0x1086                  _gyro_adc
-                    0x114e                  _gyro_adc_sum
-                    0x1152                  _gyro_value_adc_ave
+                    0x1008                  _spi_digit
+                    0x100c                  _spi_digit_inc
+                    0x100e                  _display_digit
+                    0x100f                  _values_to_display
+                    0x1010                  _adc_gyro
+                    0x1012                  _adc_gyro0
+                    0x1014                  _aile_buf
+                    0x1016                  _elev_buf
+                    0x1018                  _thro_buf
+                    0x101a                  _gear_buf
+                    0x101c                  _aile_value
+                    0x101e                  _elev_value
+                    0x1020                  _thro_value
+                    0x1022                  _gear_value
+                    0x1024                  _gyro_value
+                    0x1026                  _gyro_value_ave
+                    0x1028                  _gyro_deadband
+                    0x102a                  _temp
+                    0x102c                  _IC1BUF_temp
+                    0x102e                  _IC2BUF_temp
+                    0x1030                  _IC3BUF_temp
+                    0x1032                  _IC4BUF_temp
+                    0x1034                  _IC1BUF_temp1
+                    0x1036                  _IC2BUF_temp1
+                    0x1038                  _IC3BUF_temp1
+                    0x103a                  _IC4BUF_temp1
+                    0x103c                  _RCpulse_min
+                    0x103e                  _RCpulse_cen
+                    0x1040                  _RCpulse_max
+                    0x1042                  _RCswing
+                    0x1044                  _RCvalue_min
+                    0x1046                  _RCvalue_max
+                    0x1048                  _RCvalue_DB
+                    0x104a                  _SIGNAL_AILE
+                    0x104b                  _SIGNAL_ELEV
+                    0x104c                  _SIGNAL_THRO
+                    0x104d                  _SIGNAL_GEAR
+                    0x104e                  _SIGNAL_CHECK
+                    0x1050                  _PDC_cen
+                    0x1052                  _left_value
+                    0x1054                  _right_value
+                    0x1056                  _test_min
+                    0x1058                  _test_max
+                    0x105a                  _uturn_counter
+                    0x105c                  _gyro
+                    0x1070                  _gyro_inc
+                    0x1071                  _gyro_update
+                    0x1072                  _gyro_break
+                    0x1074                  _turn_deg
+                    0x1076                  _turn_deg_10
+                    0x107a                  _turn_deg_100
+                    0x107e                  _turn_dir
+                    0x1080                  _brake_estimate
+                    0x1082                  _wait
+                    0x1083                  _test_spin_on
+                    0x1084                  _wait_count
+                    0x1086                  _final
+                    0x1087                  _rudd_left
+                    0x1088                  _rudd_right
+                    0x1089                  _gyro_inc_adc
+                    0x108a                  _gyro_value_adc_old
+                    0x108c                  _gyro_adc
+                    0x1154                  _gyro_adc_sum
+                    0x1158                  _gyro_value_adc_ave
+
+.ndata              0x115a         0x24
+ .ndata             0x115a         0x24 build/default/production/main.o
+                    0x115a                  _UART_done
 
 .config_IESO      0x0057f8          0x2
  .config_IESO     0x0057f8          0x2 build/default/production/main.o
@@ -1688,24 +1711,31 @@ __c30_signature
  .ivt._T4Interrupt
                   0x00004a          0x2 build/default/production/main.o
 
-.text             0x000786        0x8b2
- .text            0x000786        0x8b2 build/default/production/main.o
-                  0x000786                  _main
-                  0x000a40                  _Display
-                  0x000a74                  _Display2
-                  0x000ae6                  _Display3
-                  0x000b9a                  _Display4
-                  0x000c90                  _Gyro_LEDS
-                  0x000cb2                  _RCvalue_cond
-                  0x000cf2                  _Motor_OUT
-                  0x000d2a                  _Signal_MIX
-                  0x000d9e                  _Test_Gyro_MIN_MAX
-                  0x000dc6                  _Test_MIN_MAX
-                  0x000df0                  _Test_MIN_MAX_unsigned
-                  0x000e18                  _Uturn
-                  0x000f62                  _angle_tracker
-                  0x000f7c                  _hextobcd
-                  0x00100e                  _Rudder_con
+.ivt._U1TXInterrupt
+                  0x00002c          0x2
+ .ivt._U1TXInterrupt
+                  0x00002c          0x2 build/default/production/main.o
 
-.dinit            0x001038          0x8
- .dinit           0x001038          0x8 data_init
+.text             0x000784        0xa54
+ .text            0x000784        0xa54 build/default/production/main.o
+                  0x000784                  _main
+                  0x000aac                  _Display
+                  0x000ad8                  _Display2
+                  0x000b4a                  _Display3
+                  0x000bfe                  _Display4
+                  0x000cf4                  _Gyro_LEDS
+                  0x000d16                  _RCvalue_cond
+                  0x000d56                  _Motor_OUT
+                  0x000d8e                  _Signal_MIX
+                  0x000e02                  _Test_Gyro_MIN_MAX
+                  0x000e2a                  _Test_MIN_MAX
+                  0x000e54                  _Test_MIN_MAX_unsigned
+                  0x000e7c                  _Uturn
+                  0x000fc6                  _angle_tracker
+                  0x000fe0                  _hextobcd
+                  0x001072                  _Rudder_con
+                  0x00109c                  _UART_send
+                  0x0011a0                  _value_to_uart
+
+.dinit            0x0011d8         0x26
+ .dinit           0x0011d8         0x26 data_init
