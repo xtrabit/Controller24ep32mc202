@@ -63,7 +63,7 @@ void Test_Gyro_MIN_MAX(void);
 void Test_MIN_MAX(int x);
 void Test_MIN_MAX_unsigned(unsigned int x);
 void UART_send(void);
-unsigned char value_to_uart(char value[], unsigned char pos, unsigned char len);
+// unsigned char value_to_uart(char value[], unsigned char pos, unsigned char len);
 
 char UART_send_trigger = 0;
 char UART_done = 1;
@@ -316,7 +316,8 @@ void __attribute__((interrupt, no_auto_psv)) _T1Interrupt() { // SPI output time
         mcu_on = 1;
     }
     LED_G = LED_G ? 0 : 1;
-    UART_send_trigger = 1;
+    UART_done = 0;
+    // UART_send_trigger = 1;
     // UART_send();
     // if (U1STAbits.UTXEN) {
     //     if (U1STAbits.TRMT && spi_digit_inc == 3) {
@@ -699,11 +700,12 @@ int main(void) {
 
     while (1) {
         //LED_R = LED_R ? 0 : 1;
-        if (UART_send_trigger || !UART_done) {
-            UART_send_trigger = 0;
-            UART_send();
+        // if (UART_send_trigger || !UART_done) {
+        //     UART_send_trigger = 0;
+        //     UART_send();
 
-        }
+        // }
+        UART_send();
         //STOP();
         //Uturn();
         //Rudder_con();
@@ -1185,99 +1187,63 @@ void Rudder_con(void) { // positive is actually left
 }
 
 void UART_send(void) {
-    if (U1STAbits.UTXEN) {
+    if (U1STAbits.UTXEN && !UART_done) {
         #define key_len 7
-        // unsigned char key_len_v = 7;
         #define val_len 8
         #define headers_len 2
         typedef struct {
             char key[key_len];
             char value[val_len];
+            unsigned char key_pos;
+            unsigned char val_pos;
             char done;
-            char started;
         } str_header;
-
         static str_header headers[2] = {
             {
                 "angle:",
-                "        ",
+                "       1",
+                0,
                 0,
                 0
             },
             {
                 "gyro :",
-                "        ",
+                "       2",
+                0,
                 0,
                 0
             }
         };
+        static unsigned char h_pos = 0;
 
-        // static const char headers[2][7] = {
-        //     "angle:",
-        //     "gyro :"
-        // };
-
-        unsigned char header = 0;
-        unsigned char pos = 0;
-        // const char headers_len = 2;
-        // const char key_len = 7;
         if (!U1STAbits.UTXBF) {
-            UART_done = 0;
-            for (;header < headers_len; header++) {
-                // for (; pos < key_len; pos++) {
-                //     if (!U1STAbits.UTXBF) {
-                //         if (pos == key_len - 1) {
-                //             U1TXREG = NEWLINE;
-                //         } else {
-                //             U1TXREG = headers[header].key[pos];
-                //         }
-                //     } else {
-                //         break;
-                //     }
-                // }
-                // pos = value_to_uart(pos, key_len_v);
-                if (!headers[header].done) {
-                    headers[header].started = 1;
-                    pos = value_to_uart(headers[header].key, pos, key_len);
-                    if (pos < key_len && U1STAbits.UTXBF) break;
-                    if (pos == key_len) {
-                        pos = 0;
-                        headers[header].done = 1;
-                    }
+            for (;h_pos < headers_len; h_pos++) {
+                for (; headers[h_pos].key_pos < headers[h_pos].key_len; headers[h_pos].key_pos++) {
+                    if (!U1STAbits.UTXBF) {
+                        U1TXREG = headers[h_pos].key[headers[h_pos].key_pos];
+                    } else break;
                 }
-                if (!headers[header].done) {
-                    pos = value_to_uart(headers[header].value, pos, val_len);
-                    if (pos < key_len && U1STAbits.UTXBF) break;
-                    if (pos == key_len) {
-                        pos = 0;
-                        headers[header].done = 1;
-                    }
+                if (headers[h_pos].key_pos < headers[h_pos].key_len) break;
+                for (; headers[h_pos].val_pos < headers[h_pos].val_len; headers[h_pos].val_pos++) {
+                    if (!U1STAbits.UTXBF) {
+                        U1TXREG = headers[h_pos].value[headers[h_pos].val_pos];
+                    } else break;
+                }
+                if (headers[h_pos].val_pos < headers[h_pos].val_len) break;
+                if (headers[h_pos].val_pos == headers[h_pos].val_len) {
+                    if (!U1STAbits.UTXBF) {
+                        U1TXREG = NEWLINE;
+                        headers[h_pos].key_pos = 0;
+                        headers[h_pos].val_pos = 0;
+                    } else break;
                 }
             }
-            if (header >= headers_len) {
-                header = 0;
-            }
-            if (header == 0 && pos == 0) {
+            if (h_pos == headers_len) {
+                h_pos = 0;
                 UART_done = 1;
-                while (U1STAbits.UTXBF) {}
-                U1TXREG = NEWLINE;
             }
         }
     }
-
-
-    // char lastname[25];
-    // char firstname[25];
-
-    // strcpy(lastname,"John");
-    // strcpy(firstname,"Doe");
-
-
-
-
-
-
-
     // global char test_str[] = "test_str"; // 5811
 
     // static char *s = "test_str"; // 5817
@@ -1286,24 +1252,23 @@ void UART_send(void) {
     // char *s = "test_str"; // 5811
 
     // static const char test_str[] = "test_str"; // 5805
-//     static char test_str[] = "test_str"; // 5811
-//     const char test_str[] = "test_str"; // 5826
-//     char test_str[] = "test_str"; // 5826
+    // static char test_str[] = "test_str"; // 5811
+    // const char test_str[] = "test_str"; // 5826
+    // char test_str[] = "test_str"; // 5826
 
-//     static const char test_str[9] = {1,2,3,4,5,6,7,8,9}; // 5805
-//     static char test_str[9] = {1,2,3,4,5,6,7,8,9}; // 5811
-//     const char test_str[9] = {1,2,3,4,5,6,7,8,9}; // 5805
+    // static const char test_str[9] = {1,2,3,4,5,6,7,8,9}; // 5805
+    // static char test_str[9] = {1,2,3,4,5,6,7,8,9}; // 5811
+    // const char test_str[9] = {1,2,3,4,5,6,7,8,9}; // 5805
      // char test_str[9] = {1,2,3,4,5,6,7,8,9}; // 5817
 }
 
-// unsigned char value_to_uart(unsigned char pos, unsigned char len) {
-unsigned char value_to_uart(char value[], unsigned char pos, unsigned char len) {
-    for (; pos < len; pos++) {
-        if (!U1STAbits.UTXBF) {
-            U1TXREG = value[pos];
-        } else {
-            break;
-        }
-    }
-    return pos;
-}
+// unsigned char value_to_uart(char value[], unsigned char pos, unsigned char len) {
+//     for (; pos < len; pos++) {
+//         if (!U1STAbits.UTXBF) {
+//             U1TXREG = value[pos];
+//         } else {
+//             break;
+//         }
+//     }
+//     return pos;
+// }
