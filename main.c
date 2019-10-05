@@ -1218,19 +1218,19 @@ void UART_send(void) {
 
         if (!U1STAbits.UTXBF) {
             for (;h_pos < headers_len; h_pos++) {
-                for (; headers[h_pos].key_pos < headers[h_pos].key_len; headers[h_pos].key_pos++) {
+                for (; headers[h_pos].key_pos < key_len; headers[h_pos].key_pos++) {
                     if (!U1STAbits.UTXBF) {
                         U1TXREG = headers[h_pos].key[headers[h_pos].key_pos];
                     } else break;
                 }
-                if (headers[h_pos].key_pos < headers[h_pos].key_len) break;
-                for (; headers[h_pos].val_pos < headers[h_pos].val_len; headers[h_pos].val_pos++) {
+                if (headers[h_pos].key_pos < key_len) break;
+                for (; headers[h_pos].val_pos < val_len; headers[h_pos].val_pos++) {
                     if (!U1STAbits.UTXBF) {
                         U1TXREG = headers[h_pos].value[headers[h_pos].val_pos];
                     } else break;
                 }
-                if (headers[h_pos].val_pos < headers[h_pos].val_len) break;
-                if (headers[h_pos].val_pos == headers[h_pos].val_len) {
+                if (headers[h_pos].val_pos < val_len) break;
+                if (headers[h_pos].val_pos == val_len) {
                     if (!U1STAbits.UTXBF) {
                         U1TXREG = NEWLINE;
                         headers[h_pos].key_pos = 0;
