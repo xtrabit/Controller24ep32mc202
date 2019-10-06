@@ -77,8 +77,8 @@ int spi_digit_inc;
 char display_digit;
 char values_to_display;
 //int adc_batt;
-int adc_gyro;
-int adc_gyro0;
+int adc_gyro_input;
+int adc_gyro_ref;
 unsigned int aile_buf;
 unsigned int elev_buf;
 unsigned int thro_buf;
@@ -87,7 +87,7 @@ int aile_value;
 int elev_value;
 int thro_value;
 int gear_value;
-int gyro_value;
+int adc_gyro_value;
 int gyro_value_ave;
 char gyro_deadband;
 int temp;
@@ -124,10 +124,10 @@ int gyro[10];
 unsigned char gyro_inc;
 char gyro_update;
 char gyro_break;
-int turn_deg;
-long turn_deg_10;
-int turn_deg_100;
-// long turn_deg_100;
+int turn_deg_x_10;
+long turn_deg_sum;
+int deg_per_interrupt;
+// long deg_per_interrupt;
 char turn_dir;
 unsigned int brake_estimate;
 char wait;
@@ -137,19 +137,20 @@ int wait_count;
 char final;
 char rudd_left;
 char rudd_right;
-unsigned char gyro_inc_adc;
-int gyro_value_adc_old;
-int gyro_adc[ADC_GYRO_AVE];
-long gyro_adc_sum;
+unsigned char adc_gyro_inc;
+int adc_gyro_value_old;
+int adc_gyro[ADC_GYRO_AVE];
+long adc_gyro_sum;
 //unsigned char gyro0_inc_adc;
 //unsigned int gyro0_value_adc_ave;
-//int adc_gyro0_old;
+//int adc_gyro_ref_old;
 //int gyro0_adc[100];
 //long gyro0_adc_sum;
-int gyro_value_adc_ave;
-int gyro_value_ave_min = 0;
-int gyro_value_ave_max = 0;
+int gyro_value_comp;
+int display_min = 0x7fff;
+int display_max = 0xffff;
 unsigned int TMR_DIFF = 0;
+long gyro_value_sum = 0;
 
 
 void __attribute__((interrupt, no_auto_psv)) _ISR _IC1Interrupt(void) {  // 1.3 us
@@ -255,30 +256,17 @@ void __attribute__((interrupt, no_auto_psv)) _ISR _IC4Interrupt(void) {
 }
 
 void __attribute__((__interrupt__, auto_psv)) _AD1Interrupt(void) {  // every 30us; takes 2us
-    //LED_G = 1;
-    adc_gyro0 = ADC1BUF0;
-    adc_gyro = ADC1BUF1;
-    gyro_value = adc_gyro - adc_gyro0;
-    gyro_inc_adc = gyro_inc_adc == ADC_GYRO_AVE ? 0 : gyro_inc_adc;
+    adc_gyro_ref = ADC1BUF0;
+    adc_gyro_input = ADC1BUF1;
+    adc_gyro_value = adc_gyro_input - adc_gyro_ref;
 
-    gyro_value_adc_old = gyro_adc[gyro_inc_adc];
-    gyro_adc[gyro_inc_adc] = gyro_value;
-    gyro_adc_sum = gyro_adc_sum - gyro_value_adc_old + gyro_value;
+    adc_gyro_inc = adc_gyro_inc == ADC_GYRO_AVE ? 0 : adc_gyro_inc;
+    adc_gyro_value_old = adc_gyro[adc_gyro_inc];
+    adc_gyro[adc_gyro_inc] = adc_gyro_value;
+    adc_gyro_sum = adc_gyro_sum - adc_gyro_value_old + adc_gyro_value;
+    adc_gyro_inc ++;
 
-    // if (gyro_inc_adc < 100) { //was 100
-    //     gyro_value_adc_old = gyro_adc[(gyro_inc_adc)];
-    //     gyro_adc[(gyro_inc_adc)] = gyro_value;
-    //     gyro_adc_sum = gyro_adc_sum - gyro_value_adc_old + gyro_value;
-    // } else {
-    //     gyro_inc_adc = 0;
-    //     gyro_value_adc_old = gyro_adc[(gyro_inc_adc)];
-    //     gyro_adc[(gyro_inc_adc)] = gyro_value;
-    //     gyro_adc_sum = gyro_adc_sum - gyro_value_adc_old + gyro_value;
-    // }
-    //gyro_value_adc_ave = (gyro_adc_sum - 28) / 100; // - more negative = red less
-    gyro_inc_adc ++;
     IFS0bits.AD1IF = 0;
-    //LED_G = 0;
 }
 
 void __attribute__((interrupt, no_auto_psv)) _T1Interrupt() { // SPI output timer 250ms period
@@ -324,56 +312,30 @@ void __attribute__((interrupt, no_auto_psv)) _T3Interrupt() {
 void __attribute__((interrupt, no_auto_psv)) _T4Interrupt() {// Gyro_value calcs and value update timer; 2ms period; update every 20ms; 20us, 70us all parts
     TMR_DIFF = TMR4;
     _T4IF = 0;
-    gyro_value_adc_ave = (gyro_adc_sum + 62) / ADC_GYRO_AVE; //was (gyro_adc_sum + 625) / 100; - smaller makes zero creep CCW : 0 - deg grow negative
+    gyro_value_comp = adc_gyro_sum + 63;// / ADC_GYRO_AVE; //was (adc_gyro_sum + 625) / 100; - smaller makes zero creep CCW : 0 - deg grow negative
+    // if (gyro_value_comp > -150 && gyro_value_comp < 100) gyro_value_comp = 0;
     gyro_inc = gyro_inc == 10 ? 0 : gyro_inc;
-    static int gyro_value_adc_ave_old = 0;
-    static int gyro_value_adc_ave_sum = 0;
-    gyro_value_adc_ave_old = gyro[gyro_inc];
-    gyro[gyro_inc] = gyro_value_adc_ave;
-    gyro_value_adc_ave_sum = gyro_value_adc_ave_sum - gyro_value_adc_ave_old + gyro_value_adc_ave;
-    gyro_value_ave = gyro_value_adc_ave_sum / 10;
-    // if (gyro_value_ave > -2 && gyro_value_ave < 2) gyro_value_ave = 0;
+    static int gyro_value_comp_old = 0;
+    gyro_value_comp_old = gyro[gyro_inc];
+    gyro[gyro_inc] = gyro_value_comp;
+    gyro_value_sum = gyro_value_sum - gyro_value_comp_old + gyro_value_comp;
+    gyro_value_ave = gyro_value_sum / 10;
+    if (gyro_value_ave > -50 && gyro_value_ave < 50) gyro_value_ave = 0;
     gyro_inc++;
 
-    // if (gyro_value_ave > -25 && gyro_value_ave < 25) turn_deg_100 = gyro_value_ave * 40;
-    // if (gyro_value_ave > -40 && gyro_value_ave < 40) turn_deg_100 = gyro_value_ave * 30;
-    // if (gyro_value_ave > -65 && gyro_value_ave < 65) turn_deg_100 = gyro_value_ave * 25;
-    // if (gyro_value_ave > -90 && gyro_value_ave < 90) turn_deg_100 = gyro_value_ave * 20;
-    if (gyro_value_ave > -100 && gyro_value_ave < 100) turn_deg_100 = gyro_value_ave * 15.4;
-    else turn_deg_100 = gyro_value_ave * 15.2; // 203
-    // turn_deg_100 = gyro_value_ave * 15.5; // 203
-    // turn_deg_100 = (long) gyro_value_ave * 1510 / 1000; // 565
-    if (turn_deg_100 > -100 && turn_deg_100 < 100) turn_deg_100 = 0;
-    turn_deg_10 = turn_deg_10 + turn_deg_100;
-    turn_deg = turn_deg_10 / 1000;
+    if (gyro_value_ave > -500 && gyro_value_ave < 500) deg_per_interrupt = gyro_value_ave * 1.54;
+    else if (gyro_value_ave > -1000 && gyro_value_ave < 1000) deg_per_interrupt = gyro_value_ave * 1.53;
+    else deg_per_interrupt = gyro_value_ave * 1.52; // 203
+    // if (deg_per_interrupt > -100 && deg_per_interrupt < 100) deg_per_interrupt = 0;
+    turn_deg_sum = turn_deg_sum + deg_per_interrupt;
+    turn_deg_x_10 = turn_deg_sum / 1000;
+
     gyro_update = 1;
     TMR_DIFF = TMR4 - TMR_DIFF;
-
-    // if (gyro_inc < 9) {  // was 9
-    //     gyro[gyro_inc] = gyro_value_adc_ave;
-    //     gyro_inc++;
-    // } else {   //55 us
-    //     //LED_G = 1;
-    //     gyro[gyro_inc] = gyro_value_adc_ave;
-    //     gyro_value_ave = ((long) gyro[0] + gyro[1] + gyro[2] + gyro[3] + gyro[4] + gyro[5] + gyro[6] + gyro[7] + gyro[8] + gyro[9]) / 10; // 19 us
-    //     //gyro_value_ave = ((long) gyro[0] + gyro[1] + gyro[2] + gyro[3] + gyro[4]) / 5;
-    //     turn_deg_100 = (long) gyro_value_ave * 1510 / 1000; // together with above 38 us; _10==1465/10000 ; 1524 works well slow, adds 1 or 0.5 at quick 180; 760 at 5 steps
-    //     if (turn_deg_100 > -2 && turn_deg_100 < 2) turn_deg_100 = 0;
-    //     turn_deg_10 = turn_deg_10 + turn_deg_100;
-    //     turn_deg = turn_deg_10 / 10;
-    //     gyro_inc = 0;
-    //     gyro_update = 1;
-    // }
-    //LED_G = 0;
-    //LED_R = 0;
 }
 
 void __attribute__((interrupt, no_auto_psv)) _U1TXInterrupt() {
-    if (UART_send_trigger || !UART_done) {
-        UART_send_trigger = 0;
-        UART_send();
 
-    }
     IFS0bits.U1TXIF = 0;
 }
 
@@ -660,29 +622,50 @@ int main(void) {
     final = 0;
     rudd_left = 0;
     rudd_right = 0;
-    gyro_inc_adc = 0;
+    adc_gyro_inc = 0;
 
-    turn_deg_100 = 0;
-    turn_deg_10 = 0;
-    turn_deg = 0;
+    deg_per_interrupt = 0;
+    turn_deg_sum = 0;
+    turn_deg_x_10 = 0;
 
     values_to_display = 1;
     spi_digit_inc = 3;
 
     while (1) {
 
-        if (turn_deg_100 < gyro_value_ave_min) {
-            gyro_value_ave_min = turn_deg_100;
+        // if (adc_gyro_input < display_min) {
+        //     display_min = adc_gyro_input;
+        // }
+        // if (adc_gyro_input > display_max) {
+        //     display_max = adc_gyro_input;
+        // }
+
+        // if (gyro_value_ave < display_min) {
+        //     display_min = gyro_value_ave;
+        // }
+        // if (gyro_value_ave > display_max) {
+        //     display_max = gyro_value_ave;
+        // }
+
+        // if (adc_gyro_sum < display_min) {
+        //     display_min = adc_gyro_sum;
+        // }
+        // if (adc_gyro_sum > display_max) {
+        //     display_max = adc_gyro_sum;
+        // }
+
+        if (gyro_value_comp < display_min) {
+            display_min = gyro_value_comp;
         }
-        if (turn_deg_100 > gyro_value_ave_max) {
-            gyro_value_ave_max = turn_deg_100;
+        if (gyro_value_comp > display_max) {
+            display_max = gyro_value_comp;
         }
 
-        // if (gyro_value_ave < gyro_value_ave_min) {
-        //     gyro_value_ave_min = gyro_value_ave;
+        // if (gyro_value_ave < display_min) {
+        //     display_min = gyro_value_ave;
         // }
-        // if (gyro_value_ave > gyro_value_ave_max) {
-        //     gyro_value_ave_max = gyro_value_ave;
+        // if (gyro_value_ave > display_max) {
+        //     display_max = gyro_value_ave;
         // }
 
 
@@ -701,9 +684,9 @@ int main(void) {
             char buff = U1RXREG;
             if (buff == 'r') { // 'r'
             // if (buff == 0x72) { // 'r'
-                turn_deg_10 = 0;
-                gyro_value_ave_min = 0;
-                gyro_value_ave_max = 0;
+                turn_deg_sum = 0;
+                display_min = 0x7fff;
+                display_max = 0xffff;
             }
         }
 
@@ -818,22 +801,8 @@ int main(void) {
         //Signal_MIX();
         //Motor_OUT();
         //angle_tracker();
-        //Display(adc_gyro0);
-        //Display(hextobcd(turn_deg));
-        //Display(hextobcd(brake_estimate));
-        //Display(hextobcd(gyro_value));
-        //Display(hextobcd(gyro0_value_adc_ave));
-        //Display(hextobcd(gyro_value_adc_ave));
-        //Display(gyro_value_adc_ave);
-        //Display(hextobcd(gyro_value_ave));
-        //Test_MIN_MAX_unsigned(adc_gyro0);
-        //Test_MIN_MAX(gyro_value);
-        //Display2 (test_min, test_max); // for unsigned
-        //Display2 (-test_min, test_max);
-        //Display2 (left_value, right_value);
-        //Display2 (aile_value, elev_value);
-        //Display2 (aile_buf, elev_buf);
-        //Display4 (-test_min, test_max, tt, tt2);
+        //Test_MIN_MAX_unsigned(adc_gyro_ref);
+        //Test_MIN_MAX(adc_gyro_value);
         //Test_Gyro_MIN_MAX();
 
         //Gyro_LEDS();
@@ -918,11 +887,11 @@ void Test_Gyro_MIN_MAX(void) {
         test_min = 0x0000;
         test_max = 0x0000;
     }
-    if (gyro_value > test_max) {
-        test_max = gyro_value;
+    if (adc_gyro_value > test_max) {
+        test_max = adc_gyro_value;
     }
-    if (gyro_value < test_min) {
-        test_min = gyro_value;
+    if (adc_gyro_value < test_min) {
+        test_min = adc_gyro_value;
     }
 }
 
@@ -963,7 +932,7 @@ void Test_MIN_MAX_unsigned(unsigned int x) {
         MOTOR_R = PDC_cen;
     }
     if (bt_retract == 1) {
-        turn_deg = 0;
+        turn_deg_x_10 = 0;
     }
 }*/
 
@@ -977,10 +946,10 @@ void Uturn(void) {
             uturn_counter = 0;
             //T4CONbits.TON = 1;
             //gyro_inc = 0;
-            turn_deg_10 = 0;
+            turn_deg_sum = 0;
             MOTOR_L = PDC_cen;
             MOTOR_R = PDC_cen;
-            //gyro[gyro_inc] = gyro_value;
+            //gyro[gyro_inc] = adc_gyro_value;
             //gyro_inc ++;
             gyro_update = 0;
             gyro_break = 0;
@@ -990,16 +959,16 @@ void Uturn(void) {
         }
     } else {
         if (gyro_update == 1) {
-            //turn_deg = turn_deg + turn_deg_100;
-            //gyro[gyro_inc] = gyro_value;
+            //turn_deg_x_10 = turn_deg_x_10 + deg_per_interrupt;
+            //gyro[gyro_inc] = adc_gyro_value;
             if (gyro_break == 1) {
-                //turn_deg = turn_deg + (gyro[gyro_inc] - gyro[gyro_inc - 1]) * 0.732;
+                //turn_deg_x_10 = turn_deg_x_10 + (gyro[gyro_inc] - gyro[gyro_inc - 1]) * 0.732;
                 if (uturn_counter >= 0) {
                     gyro_break = 0;
                     //gyro_inc = 0;
-                    if (turn_deg > 0) turn_dir = 1; // positive is ccw left
+                    if (turn_deg_x_10 > 0) turn_dir = 1; // positive is ccw left
                     else turn_dir = 0;
-                    turn_deg = 0;
+                    turn_deg_x_10 = 0;
                 } else {
                     //gyro_inc ++;
                 }
@@ -1017,28 +986,28 @@ void Uturn(void) {
                         MOTOR_L = PDC_cen + RCvalue_max / 8; //(RCvalue_max / 80) * (uturn_counter - 5);
                         MOTOR_R = PDC_cen + RCvalue_max / 8; //(RCvalue_max / 80) * (uturn_counter - 5);
                     }
-                    //turn_deg = turn_deg + gyro[gyro_inc] * 0.732;
+                    //turn_deg_x_10 = turn_deg_x_10 + gyro[gyro_inc] * 0.732;
                     //gyro_inc ++;
                 } else {
                     //gyro_inc = 0;
-                    brake_estimate = (long) gyro_value * gyro_value * 16 / 10000; // 122/100000
-                    if (turn_deg >= 0) {
-                        if ((turn_deg + brake_estimate) > 1800) {
+                    brake_estimate = (long) adc_gyro_value * adc_gyro_value * 16 / 10000; // 122/100000
+                    if (turn_deg_x_10 >= 0) {
+                        if ((turn_deg_x_10 + brake_estimate) > 1800) {
                             //LED_G = 0;
                             MOTOR_L = PDC_cen;
                             MOTOR_R = PDC_cen;
                             final = 1;
                             //test_spin_on = 0;
-                            //turn_deg = turn_deg + brake_estimate;
+                            //turn_deg_x_10 = turn_deg_x_10 + brake_estimate;
                         }
                     } else {
-                        if ((turn_deg - brake_estimate) < -1800) {
+                        if ((turn_deg_x_10 - brake_estimate) < -1800) {
                             //LED_R = 0;
                             MOTOR_L = PDC_cen;
                             MOTOR_R = PDC_cen;
                             final = 1;
                             //test_spin_on = 0;
-                            //turn_deg = turn_deg - brake_estimate;
+                            //turn_deg_x_10 = turn_deg_x_10 - brake_estimate;
                         }
                     }
                 }
@@ -1047,8 +1016,8 @@ void Uturn(void) {
             gyro_update = 0;
             wait = 1;
             if (final == 1) {
-                //turn_deg = turn_deg + turn_deg_100;
-                if (gyro_value > -gyro_deadband && gyro_value < gyro_deadband) {
+                //turn_deg_x_10 = turn_deg_x_10 + deg_per_interrupt;
+                if (adc_gyro_value > -gyro_deadband && adc_gyro_value < gyro_deadband) {
                     test_spin_on = 0;
                     final = 0;
                 } else {
@@ -1061,8 +1030,8 @@ void Uturn(void) {
 
 void angle_tracker(void) {
     if (gyro_update == 1) {
-        //if (gyro_value >= -gyro_deadband*2 && gyro_value <= gyro_deadband*2) gyro_value = 0;
-        turn_deg = turn_deg + turn_deg_100;
+        //if (adc_gyro_value >= -gyro_deadband*2 && adc_gyro_value <= gyro_deadband*2) adc_gyro_value = 0;
+        turn_deg_x_10 = turn_deg_x_10 + deg_per_interrupt;
         gyro_update = 0;
 
     }
@@ -1104,13 +1073,13 @@ void Rudder_con(void) { // positive is actually left
         rudd_left = 0;
         rudd_right = 0;
     }
-    //if (rudd_right == 1) turn_deg_10 = 0;
+    //if (rudd_right == 1) turn_deg_sum = 0;
 }
 
 void UART_send(void) {
     #define key_len 11
     #define val_len 12
-    #define headers_len 12
+    #define headers_len 10
     #define blank "xxxxxxxxxxxx"
     typedef struct {
         char key[key_len];
@@ -1120,20 +1089,20 @@ void UART_send(void) {
         char done;
     } str_header;
     static str_header headers[headers_len] = {
-        {
-            "adc_buf0   ",
-            blank,
-            0,
-            0,
-            0
-        },
-        {
-            "adc_buf1   ",
-            blank,
-            0,
-            0,
-            0
-        },
+        // {
+        //     "adc_buf0   ",
+        //     blank,
+        //     0,
+        //     0,
+        //     0
+        // },
+        // {
+        //     "adc_buf1   ",
+        //     blank,
+        //     0,
+        //     0,
+        //     0
+        // },
         {
             "adc_val    ",
             blank,
@@ -1163,14 +1132,14 @@ void UART_send(void) {
             0
         },
         {
-            "gyro_v_min ",
+            "       min ",
             blank,
             0,
             0,
             0
         },
         {
-            "gyro_v_max ",
+            "       max ",
             blank,
             0,
             0,
@@ -1184,14 +1153,14 @@ void UART_send(void) {
             0
         },
         {
-            "deg_100    ",
+            "deg_per_int",
             blank,
             0,
             0,
             0
         },
         {
-            "deg_10     ",
+            "deg_sum    ",
             blank,
             0,
             0,
@@ -1229,90 +1198,91 @@ void UART_send(void) {
             unsigned int temp_value;
             int temp_value_int;
             long temp_value_long;
-            temp_value_int = adc_gyro0;
+            unsigned char i;
+            char *converted;
+            unsigned long temp_value_u_long;
+            // temp_value_int = adc_gyro_ref;
+            // sign = temp_value_int >= 0;
+            // temp_value = temp_value_int < 0 ? -temp_value_int : temp_value_int;
+            // converted = int_to_bcd_str(temp_value, sign, 0);
+            // for (i = 0; i < val_len; i++, converted++) {
+            //     headers[0].value[i] = *converted;
+            // }
+            // temp_value_int = adc_gyro_input;
+            // sign = temp_value_int >= 0;
+            // temp_value = temp_value_int < 0 ? -temp_value_int : temp_value_int;
+            // converted = int_to_bcd_str(temp_value, sign, 0);
+            // for (i = 0; i < val_len; i++, converted++) {
+            //     headers[1].value[i] = *converted;
+            // }
+            temp_value_int = adc_gyro_value;
             sign = temp_value_int >= 0;
             temp_value = temp_value_int < 0 ? -temp_value_int : temp_value_int;
-            unsigned char i;
-            char *converted = int_to_bcd_str(temp_value, sign, 1);
+            converted = int_to_bcd_str(temp_value, sign, 0);
             for (i = 0; i < val_len; i++, converted++) {
                 headers[0].value[i] = *converted;
             }
-            temp_value_int = adc_gyro;
-            sign = temp_value_int >= 0;
-            temp_value = temp_value_int < 0 ? -temp_value_int : temp_value_int;
-            converted = int_to_bcd_str(temp_value, sign, 2);
+            temp_value_long = adc_gyro_sum;
+            sign = temp_value_long >= 0;
+            temp_value_u_long = temp_value_long < 0 ? -temp_value_long : temp_value_long;
+            converted = long_to_bcd_str(temp_value_u_long, sign, 0);
             for (i = 0; i < val_len; i++, converted++) {
                 headers[1].value[i] = *converted;
             }
-            temp_value_int = gyro_value;
+            temp_value_int = gyro_value_comp;
             sign = temp_value_int >= 0;
             temp_value = temp_value_int < 0 ? -temp_value_int : temp_value_int;
             converted = int_to_bcd_str(temp_value, sign, 0);
             for (i = 0; i < val_len; i++, converted++) {
                 headers[2].value[i] = *converted;
             }
-            temp_value_long = gyro_adc_sum;
-            sign = temp_value_long >= 0;
-            unsigned long temp_value_u_long;
-            temp_value_u_long = temp_value_long < 0 ? -temp_value_long : temp_value_long;
-            converted = long_to_bcd_str(temp_value_u_long, sign, 0);
+            temp_value_int = gyro_value_ave;
+            sign = temp_value_int >= 0;
+            temp_value = temp_value_int < 0 ? -temp_value_int : temp_value_int;
+            converted = int_to_bcd_str(temp_value, sign, 0);
             for (i = 0; i < val_len; i++, converted++) {
                 headers[3].value[i] = *converted;
             }
-            temp_value_int = gyro_value_adc_ave;
+            temp_value_int = display_min;
             sign = temp_value_int >= 0;
             temp_value = temp_value_int < 0 ? -temp_value_int : temp_value_int;
             converted = int_to_bcd_str(temp_value, sign, 0);
             for (i = 0; i < val_len; i++, converted++) {
                 headers[4].value[i] = *converted;
             }
-            temp_value_int = gyro_value_ave;
+            temp_value_int = display_max;
             sign = temp_value_int >= 0;
             temp_value = temp_value_int < 0 ? -temp_value_int : temp_value_int;
             converted = int_to_bcd_str(temp_value, sign, 0);
             for (i = 0; i < val_len; i++, converted++) {
                 headers[5].value[i] = *converted;
             }
-            temp_value_int = gyro_value_ave_min;
-            sign = temp_value_int >= 0;
-            temp_value = temp_value_int < 0 ? -temp_value_int : temp_value_int;
-            converted = int_to_bcd_str(temp_value, sign, 0);
+            converted = int_to_bcd_str(TMR_DIFF, 1, 0);
             for (i = 0; i < val_len; i++, converted++) {
                 headers[6].value[i] = *converted;
             }
-            temp_value_int = gyro_value_ave_max;
+            temp_value_int = deg_per_interrupt;
             sign = temp_value_int >= 0;
             temp_value = temp_value_int < 0 ? -temp_value_int : temp_value_int;
-            converted = int_to_bcd_str(temp_value, sign, 0);
+            converted = int_to_bcd_str(temp_value, sign, 4);
             for (i = 0; i < val_len; i++, converted++) {
                 headers[7].value[i] = *converted;
             }
-            converted = int_to_bcd_str(TMR_DIFF, 1, 0);
-            for (i = 0; i < val_len; i++, converted++) {
-                headers[8].value[i] = *converted;
-            }
-            temp_value_int = turn_deg_100;
-            sign = temp_value_int >= 0;
-            temp_value = temp_value_int < 0 ? -temp_value_int : temp_value_int;
-            converted = int_to_bcd_str(temp_value, sign, 0);
-            for (i = 0; i < val_len; i++, converted++) {
-                headers[9].value[i] = *converted;
-            }
-            temp_value_long = turn_deg_10;
+            temp_value_long = turn_deg_sum;
             sign = temp_value_long >= 0;
             temp_value_u_long = temp_value_long < 0 ? -temp_value_long : temp_value_long;
             converted = long_to_bcd_str(temp_value_u_long, sign, 4);
             for (i = 0; i < val_len; i++, converted++) {
-                headers[10].value[i] = *converted;
+                headers[8].value[i] = *converted;
             }
-            temp_value_int = turn_deg;
+            temp_value_int = turn_deg_x_10;
             sign = temp_value_int >= 0;
             temp_value = temp_value_int < 0 ? -temp_value_int : temp_value_int;
             converted = int_to_bcd_str(temp_value, sign, 1);
             for (i = 0; i < val_len; i++, converted++) {
-                headers[11].value[i] = *converted;
+                headers[9].value[i] = *converted;
             }
-            // temp_value = turn_deg < 0 ? -turn_deg : turn_deg;
+            // temp_value = turn_deg_x_10 < 0 ? -turn_deg_x_10 : turn_deg_x_10;
             // unsigned char i;
             // char *converted = int_to_bcd_str(temp_value, sign, 1);
             // for (i = 0; i < val_len; i++, converted++) {
