@@ -46,10 +46,6 @@
 #define DELAY_105uS asm volatile ("REPEAT, #4201"); Nop(); // 105uS delay
 #define NEWLINE 0xA
 
-void Display(unsigned int x);
-void Display2(unsigned int x, unsigned int y);
-void Display3(unsigned int x, unsigned int y, unsigned int z);
-void Display4(unsigned int x, unsigned int y, unsigned int z, unsigned int w);
 void Gyro_LEDS(void);
 int RCvalue_cond(int x);
 void Motor_OUT(void);
@@ -64,6 +60,7 @@ void Test_MIN_MAX(int x);
 void Test_MIN_MAX_unsigned(unsigned int x);
 void UART_send(void);
 char value_to_uart(char value[], unsigned char *pos, unsigned char len);
+char *hex_to_bcd_str(unsigned int value, char sign, char frac_dig);
 
 char UART_send_trigger = 0;
 char UART_done = 1;
@@ -273,71 +270,12 @@ void __attribute__((__interrupt__, auto_psv)) _AD1Interrupt(void) {  // every 30
 }
 
 void __attribute__((interrupt, no_auto_psv)) _T1Interrupt() { // SPI output timer 250ms period
-    // if (spi_count_t1 < 8) {
-    //     spi_count_t1++;
-    // } else {
-    //     spi_count_t1 = 0;
-    //     if (display_digit < values_to_display) display_digit++;
-    //     else display_digit = 0;
-    // }
-    // SPI1BUF = spi_digit1;
-    // SPI1BUF = spi_digit2;
-    // SPI1BUF = spi_digit3;
-    // SPI1BUF = spi_digit4;
-    // LED_G = LED_G ? 0 : 1;
-    // LED_R = LED_R ? 0 : 1;
-    // if (U1STAbits.UTXBF == 0) {
-    //     LED_G = 1;
-    //     LED_R = 1;
-    // }
-    // if (U1STAbits.UTXBF == 0) {
-    //     U1TXREG = spi_digit1;
-    // }
-    // if (U1STAbits.UTXBF == 0) {
-    //     U1TXREG = spi_digit2;
-    // }
-    // if (U1STAbits.UTXBF == 0) {
-    //     U1TXREG = spi_digit3;
-    // }
-    // if (U1STAbits.UTXBF == 0) {
-    //     U1TXREG = spi_digit4;
-    // }
-
-
-    // if (wait_count < 4) {
-    //     if (wait != 0) wait_count++;
-    // } else {
-    //     wait_count = 0;
-    //     wait = 0;
-    // }
-    IFS0bits.T1IF = 0;
-
     if (mcu_on == 0) {
         mcu_on = 1;
     }
     LED_G = LED_G ? 0 : 1;
     UART_done = 0;
-    // UART_send_trigger = 1;
-    // UART_send();
-    // if (U1STAbits.UTXEN) {
-    //     if (U1STAbits.TRMT && spi_digit_inc == 3) {
-    //         // Display(hextobcd(turn_deg));
-    //         Display(hextobcd(gyro_value_ave));
-    //         while (spi_digit_inc >= 0) {
-    //             if (!U1STAbits.UTXBF) {
-    //                 U1TXREG = spi_digit[spi_digit_inc] + 48;
-    //                 // if (spi_digit_inc == 1) {
-    //                 //     while (U1STAbits.UTXBF) {}
-    //                 //     U1TXREG = '.';
-    //                 // }
-    //                 spi_digit_inc--;
-    //             }
-    //         }
-    //         spi_digit_inc = 3;
-    //         while (U1STAbits.UTXBF) {}
-    //         U1TXREG = 0x0A;
-    //     }
-    // }
+    IFS0bits.T1IF = 0;
 }
 
 void __attribute__((interrupt, no_auto_psv)) _T2Interrupt() { // 100ms loss of signal output kill control timer
@@ -401,9 +339,7 @@ void __attribute__((interrupt, no_auto_psv)) _U1TXInterrupt() {
         UART_send();
 
     }
-    IFS0bits.U1TXIF = 0; // Clear TX Interrupt flag
-    // U1TXREG = 'a'; // Transmit one character
-    // LED_G = 1;
+    IFS0bits.U1TXIF = 0;
 }
 
 int main(void) {
@@ -839,87 +775,6 @@ int main(void) {
     }
 }
 
-void Display(unsigned int x) {
-    // spi_digit[0] = 0x10 + (x & 0x000f);
-    // spi_digit[1] = 0x20 + ((x & 0x00f0) >> 4);
-    // spi_digit[2] = 0x30 + ((x & 0x0f00) >> 8);
-    // spi_digit[3] = 0x40 + ((x & 0xf000) >> 12);
-    spi_digit[0] = x & 0x000f;
-    spi_digit[1] = (x & 0x00f0) >> 4;
-    spi_digit[2] = (x & 0x0f00) >> 8;
-    spi_digit[3] = (x & 0xf000) >> 12;
-
-}
-
-void Display2(unsigned int x, unsigned int y) {
-    if (display_digit == 0) {
-        spi_digit1 = 0x90 + (x & 0x000f);
-        spi_digit2 = 0x20 + ((x & 0x00f0) >> 4);
-        spi_digit3 = 0x30 + ((x & 0x0f00) >> 8);
-        spi_digit4 = 0x40 + ((x & 0xf000) >> 12);
-    } else {
-        spi_digit1 = 0x10 + (y & 0x000f);
-        spi_digit2 = 0xa0 + ((y & 0x00f0) >> 4);
-        spi_digit3 = 0x30 + ((y & 0x0f00) >> 8);
-        spi_digit4 = 0x40 + ((y & 0xf000) >> 12);
-    }
-
-}
-
-void Display3(unsigned int x, unsigned int y, unsigned int z) {
-
-    switch (display_digit) {
-        case 0:
-            spi_digit1 = 0x90 + (x & 0x000f);
-            spi_digit2 = 0x20 + ((x & 0x00f0) >> 4);
-            spi_digit3 = 0x30 + ((x & 0x0f00) >> 8);
-            spi_digit4 = 0x40 + ((x & 0xf000) >> 12);
-            break;
-        case 1:
-            spi_digit1 = 0x10 + (y & 0x000f);
-            spi_digit2 = 0xa0 + ((y & 0x00f0) >> 4);
-            spi_digit3 = 0x30 + ((y & 0x0f00) >> 8);
-            spi_digit4 = 0x40 + ((y & 0xf000) >> 12);
-            break;
-        case 2:
-            spi_digit1 = 0x10 + (z & 0x000f);
-            spi_digit2 = 0x20 + ((z & 0x00f0) >> 4);
-            spi_digit3 = 0xb0 + ((z & 0x0f00) >> 8);
-            spi_digit4 = 0x40 + ((z & 0xf000) >> 12);
-            break;
-    }
-}
-
-void Display4(unsigned int x, unsigned int y, unsigned int z, unsigned int w) {
-
-    switch (display_digit) {
-        case 0:
-            spi_digit1 = 0x90 + (x & 0x000f);
-            spi_digit2 = 0x20 + ((x & 0x00f0) >> 4);
-            spi_digit3 = 0x30 + ((x & 0x0f00) >> 8);
-            spi_digit4 = 0x40 + ((x & 0xf000) >> 12);
-            break;
-        case 1:
-            spi_digit1 = 0x10 + (y & 0x000f);
-            spi_digit2 = 0xa0 + ((y & 0x00f0) >> 4);
-            spi_digit3 = 0x30 + ((y & 0x0f00) >> 8);
-            spi_digit4 = 0x40 + ((y & 0xf000) >> 12);
-            break;
-        case 2:
-            spi_digit1 = 0x10 + (z & 0x000f);
-            spi_digit2 = 0x20 + ((z & 0x00f0) >> 4);
-            spi_digit3 = 0xb0 + ((z & 0x0f00) >> 8);
-            spi_digit4 = 0x40 + ((z & 0xf000) >> 12);
-            break;
-        case 3:
-            spi_digit1 = 0x10 + (w & 0x000f);
-            spi_digit2 = 0x20 + ((w & 0x00f0) >> 4);
-            spi_digit3 = 0x30 + ((w & 0x0f00) >> 8);
-            spi_digit4 = 0xc0 + ((w & 0xf000) >> 12);
-            break;
-    }
-}
-
 void Gyro_LEDS(void) {
     if (gyro_value_ave > 0) { //positive counterclockwise
         LED_G = 0;
@@ -1187,35 +1042,45 @@ void Rudder_con(void) { // positive is actually left
 }
 
 void UART_send(void) {
-    if (U1STAbits.UTXEN && !U1STAbits.UTXBF && !UART_done) {
-        #define key_len 6
-        #define val_len 8
-        #define headers_len 2
-        typedef struct {
-            char key[key_len];
-            char value[val_len];
-            unsigned char key_pos;
-            unsigned char val_pos;
-            char done;
-        } str_header;
-        static str_header headers[2] = {
-            {
-                "angle:",
-                "       1",
-                0,
-                0,
-                0
-            },
-            {
-                "gyro :",
-                "       2",
-                0,
-                0,
-                0
-            }
-        };
-        static unsigned char h_pos = 0;
+    #define key_len 6
+    #define val_len 7
+    #define headers_len 3
+    typedef struct {
+        char key[key_len];
+        char value[val_len];
+        unsigned char key_pos;
+        unsigned char val_pos;
+        char done;
+    } str_header;
+    static str_header headers[headers_len] = {
+        {
+            "adc_0:",
+            "xxxxxxx",
+            0,
+            0,
+            0
+        },
+        {
+            "adc_1:",
+            "xxxxxxx",
+            0,
+            0,
+            0
+        },
+        {
+            "adc_v:",
+            "xxxxxxx",
+            0,
+            0,
+            0
+        }
+    };
+    static unsigned char h_pos = 0;
 
+    if (U1STAbits.UTXEN && U1STAbits.TRMT && UART_done == 0) {
+        if (h_pos == 0 && headers[0].key_pos == 0) {
+            U1TXREG = NEWLINE;
+        }
         for (;h_pos < headers_len; h_pos++) {
             if (value_to_uart(headers[h_pos].key, &headers[h_pos].key_pos, key_len)) break;
             if (value_to_uart(headers[h_pos].value, &headers[h_pos].val_pos, val_len)) break;
@@ -1230,6 +1095,37 @@ void UART_send(void) {
         if (h_pos == headers_len) {
             h_pos = 0;
             UART_done = 1;
+            char sign;
+            unsigned int temp_value;
+            sign = adc_gyro0 < 0;
+            temp_value = adc_gyro0 < 0 ? -adc_gyro0 : adc_gyro0;
+            unsigned char i;
+            char *converted = hex_to_bcd_str(temp_value, sign, 0);
+            for (i = 0; i < val_len; i++, converted++) {
+                headers[0].value[i] = *converted;
+            }
+            sign = adc_gyro < 0;
+            temp_value = adc_gyro < 0 ? -adc_gyro : adc_gyro;
+            converted = hex_to_bcd_str(temp_value, sign, 0);
+            for (i = 0; i < val_len; i++, converted++) {
+                headers[1].value[i] = *converted;
+            }
+            sign = gyro_value < 0;
+            temp_value = gyro_value < 0 ? -gyro_value : gyro_value;
+            converted = hex_to_bcd_str(temp_value, sign, 0);
+            for (i = 0; i < val_len; i++, converted++) {
+                headers[2].value[i] = *converted;
+            }
+            // temp_value = turn_deg < 0 ? -turn_deg : turn_deg;
+            // unsigned char i;
+            // char *converted = hex_to_bcd_str(temp_value, sign, 1);
+            // for (i = 0; i < val_len; i++, converted++) {
+            //     headers[0].value[i] = *converted;
+            // }
+            // converted = hex_to_bcd_str(temp_value, sign, 0);
+            // for (i = 0; i < val_len; i++, converted++) {
+            //     headers[1].value[i] = *converted;
+            // }
         }
     }
 }
@@ -1241,4 +1137,42 @@ char value_to_uart(char value[], unsigned char *pos, unsigned char len) {
         } else break;
     }
     return *pos < len ? 1 : 0;
+}
+
+char *hex_to_bcd_str(unsigned int value, char sign, char frac_dig) {
+    #define offset (val_len - 5)
+    char digit;
+    int factor = 10000;
+    char first_non_zero_number = 0;
+    static char result[val_len];
+    result[0] = sign ? '+' : '-';
+    unsigned char i;
+    for (i = 0; i < offset; i++) {
+        result[i + 1] = ' ';
+    }
+    for (i = 0; i < val_len - offset + frac_dig; i++) {
+        if (i == val_len - offset - frac_dig) {
+            result[i + offset - frac_dig] = '.';
+            continue;
+        }
+        digit = value / factor;
+        if (digit == 0) {
+            if (!first_non_zero_number) {
+                if (i < val_len - offset - 1 - frac_dig) {
+                    result[i + offset - frac_dig] = ' ';
+                } else {
+                    first_non_zero_number = 1;
+                    result[i + offset - frac_dig] = 48;
+                }
+            } else {
+                result[i + offset - frac_dig] = 48;
+            }
+        } else {
+            first_non_zero_number = 1;
+            result[i + offset - frac_dig] = digit + 48;
+        }
+        value = value % factor;
+        factor = factor / 10;
+    }
+    return result;
 }
