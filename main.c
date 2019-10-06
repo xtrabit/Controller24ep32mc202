@@ -43,7 +43,7 @@
 #define LED_R LATAbits.LATA4
 #define MOTOR_L PDC1
 #define MOTOR_R PDC2
-#define DELAY_105uS asm volatile ("REPEAT, #4201"); Nop(); // 105uS delay
+
 #define NEWLINE 0xA
 #define ADC_GYRO_AVE 10
 
@@ -64,18 +64,8 @@ char value_to_uart(char value[], unsigned char *pos, unsigned char len);
 char *int_to_bcd_str(unsigned int value, char sign, char frac_dig);
 char *long_to_bcd_str(unsigned long value, char sign, char frac_dig);
 
-char UART_send_trigger = 0;
 char UART_done = 1;
 char mcu_on;
-int spi_count_t1;   //SPI timer
-char spi_digit1;
-char spi_digit2;
-char spi_digit3;
-char spi_digit4;
-char spi_digit[4];
-int spi_digit_inc;
-char display_digit;
-char values_to_display;
 //int adc_batt;
 int adc_gyro_input;
 int adc_gyro_ref;
@@ -127,7 +117,6 @@ char gyro_break;
 int turn_deg_x_10;
 long turn_deg_sum;
 int deg_per_interrupt;
-// long deg_per_interrupt;
 char turn_dir;
 unsigned int brake_estimate;
 char wait;
@@ -141,11 +130,6 @@ unsigned char adc_gyro_inc;
 int adc_gyro_value_old;
 int adc_gyro[ADC_GYRO_AVE];
 long adc_gyro_sum;
-//unsigned char gyro0_inc_adc;
-//unsigned int gyro0_value_adc_ave;
-//int adc_gyro_ref_old;
-//int gyro0_adc[100];
-//long gyro0_adc_sum;
 int gyro_value_comp;
 int display_min = 0x7fff;
 int display_max = 0xffff;
@@ -273,7 +257,7 @@ void __attribute__((interrupt, no_auto_psv)) _T1Interrupt() { // SPI output time
     if (mcu_on == 0) {
         mcu_on = 1;
     }
-    LED_G = LED_G ? 0 : 1;
+    // LED_G = LED_G ? 0 : 1;
     UART_done = 0;
     IFS0bits.T1IF = 0;
 }
@@ -576,7 +560,7 @@ int main(void) {
     // IFS0bits.U1TXIF = 0;
     // IEC0bits.U1TXIE = 1;
     U1MODEbits.UARTEN = 1;
-    // DELAY_105uS
+
     long i;
     for (i = 0; i < 1000000; i++) {
         Nop();
@@ -586,10 +570,8 @@ int main(void) {
     for (i = 0; i < 1000000; i++) {
         Nop();
     }
-    // U1TXREG = 'a';
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    spi_count_t1 = 0;
     LED_G = 0;
     LED_R = 0;
     gyro_deadband = 10; //was 23
@@ -607,7 +589,6 @@ int main(void) {
     SIGNAL_CHECK = 0;
     PDC_cen = 0x1758;
 
-    display_digit = 0;
     aile_value = 0;
     elev_value = 0;
 
@@ -627,9 +608,6 @@ int main(void) {
     deg_per_interrupt = 0;
     turn_deg_sum = 0;
     turn_deg_x_10 = 0;
-
-    values_to_display = 1;
-    spi_digit_inc = 3;
 
     while (1) {
 
@@ -669,21 +647,11 @@ int main(void) {
         // }
 
 
-        // if (TMR4 > TMR_DIFF) {
-        //     TMR_DIFF = TMR4;
-        // }
-        //LED_R = LED_R ? 0 : 1;
-        // if (UART_send_trigger || !UART_done) {
-        //     UART_send_trigger = 0;
-        //     UART_send();
-
-        // }
         UART_send();
 
         if(U1STAbits.URXDA == 1) {
             char buff = U1RXREG;
-            if (buff == 'r') { // 'r'
-            // if (buff == 0x72) { // 'r'
+            if (buff == 'r') { // 'r' = 0x72
                 turn_deg_sum = 0;
                 display_min = 0x7fff;
                 display_max = 0xffff;
@@ -695,54 +663,6 @@ int main(void) {
         //Uturn();
         //Rudder_con();
 
-
-        // U1TXREG = "1";
-        // U1TXREG = 0x0A;
-        // if (U1STAbits.UTXBF == 0 && received) {
-        //     LED_R = 0;
-        //     // U1TXREG = 'a';
-        //     char roger[] = "roger";
-        //     char j = 0;
-        //     for (j = 0; j < 5; j++) {
-        //         while (U1STAbits.UTXBF == 1) {}
-        //         U1TXREG = roger[j];
-        //     }
-        //     while (U1STAbits.UTXBF == 1) {}
-        //     U1TXREG = 0x0A;
-        //     received = 0;
-        // } else {
-        //     LED_R = 1;
-        // }
-        // if(U1STAbits.URXDA == 1)
-        // {
-        //     // int i;
-
-        //     LED_G = 1;
-        //     // for (i = 0; i < 1000; i++) {
-        //     //     Nop();
-        //     // }
-        //     // U1TXREG = U1RXREG;
-        //     temp_read = U1RXREG;
-        //     received = 1;
-        //     // for (i = 0; i < 1000; i++) {
-        //     //     Nop();
-        //     // }
-        //     // U1TXREG = temp_read;
-        // }
-
-
-
-
-        // if (U1STAbits.UTXBF == 1) {
-        //     LED_R = 1;
-        //     // U1TXREG = 0x01;
-        // }
-        // if (U1STAbits.TRMT == 0) {
-        //     LED_R = 1;
-        //     // U1TXREG = 0x01;
-        // } else {
-        //     LED_R = 0;
-        // }
         // if (U1STAbits.PERR == 1) {
         //     LED_R = 1;
         //     // U1TXREG = 0x01;
@@ -758,54 +678,17 @@ int main(void) {
         // if (IFS0bits.U1TXIF == 1) {
         //     LED_G = 0;
         // }
-
-        // if(U1STAbits.FERR == 1)
-        // {
-        // continue;
-        // }
-        /* Must clear the overrun error to keep UART receiving */
+        // Must clear the overrun error to keep UART receiving
         // if(U1STAbits.OERR == 1)
         // {
         //     U1STAbits.OERR = 0;
-        // }
-        /* Get the data */
-        // if(U1STAbits.URXDA == 1)
-        // {
-        //     int i;
-
-        //     LED_G = 1;
-        //     // for (i = 0; i < 1000; i++) {
-        //     //     Nop();
-        //     // }
-        //     // U1TXREG = U1RXREG;
-        //     temp_read = U1RXREG;
-        //     // for (i = 0; i < 1000; i++) {
-        //     //     Nop();
-        //     // }
-        //     // U1TXREG = temp_read;
-        // }
-        // U1TXREG = 'a';
-        // if (U1STAbits.UTXBF == 0) {
-        //     U1TXREG = spi_digit1;
-        // }
-        // if (U1STAbits.UTXBF == 0) {
-        //     U1TXREG = spi_digit2;
-        // }
-        // if (U1STAbits.UTXBF == 0) {
-        //     U1TXREG = spi_digit3;
-        // }
-        // if (U1STAbits.UTXBF == 0) {
-        //     U1TXREG = spi_digit4;
         // }
 
         //Signal_MIX();
         //Motor_OUT();
         //angle_tracker();
-        //Test_MIN_MAX_unsigned(adc_gyro_ref);
-        //Test_MIN_MAX(adc_gyro_value);
-        //Test_Gyro_MIN_MAX();
 
-        //Gyro_LEDS();
+        Gyro_LEDS();
         //LED_R = 0;
     }
 }
@@ -846,7 +729,7 @@ void Motor_OUT(void) {
     if (SIGNAL_CHECK == 1) {
         //RCvalue = aile_buf - RCpulse_cen;   // 250 ns
         //RCvalue = RCvalue_cond(RCvalue);    // 1.2us
-        MOTOR_L = PDC_cen + left_value / 8; // 500ns //PDC1 = 0x1758 + RCvalue / 7.98;     //12.5us //PDC1 = 0x1758 + ((long)RCvalue * 100) / 798;    // 18us
+        MOTOR_L = PDC_cen + left_value / 8; // 500ns //PDC1 = 0x1758 + RCvalue / 7.98;
 
         //RCvalue = elev_buf - RCpulse_cen;   // 250 ns
         //RCvalue = RCvalue_cond(RCvalue);    // 1.2us
@@ -882,51 +765,8 @@ void Signal_MIX(void) {
     right_value = RCvalue_cond(right_value);
 }
 
-void Test_Gyro_MIN_MAX(void) {
-    if (rudd_left == 1) {
-        test_min = 0x0000;
-        test_max = 0x0000;
-    }
-    if (adc_gyro_value > test_max) {
-        test_max = adc_gyro_value;
-    }
-    if (adc_gyro_value < test_min) {
-        test_min = adc_gyro_value;
-    }
-}
-
-void Test_MIN_MAX(int x) {
-    if (rudd_left == 1) {
-        test_min = 0x0000;
-        test_max = 0x0000;
-    }
-    if (x > test_max) {
-        test_max = x;
-    }
-    if (x < test_min) {
-        test_min = x;
-    }
-}
-
-void Test_MIN_MAX_unsigned(unsigned int x) {
-    if (rudd_left == 1) {
-        test_min = 0xffff;
-        test_max = 0x0000;
-    }
-    if (x > test_max) {
-        test_max = x;
-    }
-    if (x < test_min) {
-        test_min = x;
-    }
-}
-
 /*void STOP(void) {
     if (bt_extend == 1) {
-        //T4CONbits.TON = 0;
-        //TMR5HLD = 0;
-        //TMR5 = 0x0000;
-        //TMR4 = 0x0000;
         test_spin_on = 0;
         MOTOR_L = PDC_cen;
         MOTOR_R = PDC_cen;
@@ -1035,31 +875,6 @@ void angle_tracker(void) {
         gyro_update = 0;
 
     }
-}
-
-int hextobcd(int x) {
-    unsigned int td1;
-    unsigned int td2;
-    unsigned int td3;
-    unsigned int td4;
-    unsigned int tdt;
-
-    if (x >= 0) x = x;
-    else x = -x;
-
-    td1 = 0;
-    td2 = 0;
-    td3 = 0;
-    td4 = 0;
-    tdt = 0;
-    td4 = x / 1000;
-    tdt = x % 1000;
-    td3 = tdt / 100;
-    tdt = tdt % 100;
-    td2 = tdt / 10;
-    td1 = tdt % 10;
-    tdt = td1 + (td4 << 12) + (td3 << 8) + (td2 << 4);
-    return (tdt);
 }
 
 void Rudder_con(void) { // positive is actually left
