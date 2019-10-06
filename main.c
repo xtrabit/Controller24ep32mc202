@@ -45,6 +45,7 @@
 #define MOTOR_R PDC2
 #define DELAY_105uS asm volatile ("REPEAT, #4201"); Nop(); // 105uS delay
 #define NEWLINE 0xA
+#define ADC_GYRO_AVE 10
 
 void Gyro_LEDS(void);
 int RCvalue_cond(int x);
@@ -60,7 +61,8 @@ void Test_MIN_MAX(int x);
 void Test_MIN_MAX_unsigned(unsigned int x);
 void UART_send(void);
 char value_to_uart(char value[], unsigned char *pos, unsigned char len);
-char *hex_to_bcd_str(unsigned int value, char sign, char frac_dig);
+char *int_to_bcd_str(unsigned int value, char sign, char frac_dig);
+char *long_to_bcd_str(unsigned long value, char sign, char frac_dig);
 
 char UART_send_trigger = 0;
 char UART_done = 1;
@@ -124,7 +126,8 @@ char gyro_update;
 char gyro_break;
 int turn_deg;
 long turn_deg_10;
-long turn_deg_100;
+int turn_deg_100;
+// long turn_deg_100;
 char turn_dir;
 unsigned int brake_estimate;
 char wait;
@@ -136,14 +139,17 @@ char rudd_left;
 char rudd_right;
 unsigned char gyro_inc_adc;
 int gyro_value_adc_old;
-int gyro_adc[100];
+int gyro_adc[ADC_GYRO_AVE];
 long gyro_adc_sum;
 //unsigned char gyro0_inc_adc;
 //unsigned int gyro0_value_adc_ave;
 //int adc_gyro0_old;
 //int gyro0_adc[100];
 //long gyro0_adc_sum;
-unsigned int gyro_value_adc_ave;
+int gyro_value_adc_ave;
+int gyro_value_ave_min = 0;
+int gyro_value_ave_max = 0;
+unsigned int TMR_DIFF = 0;
 
 
 void __attribute__((interrupt, no_auto_psv)) _ISR _IC1Interrupt(void) {  // 1.3 us
@@ -253,16 +259,22 @@ void __attribute__((__interrupt__, auto_psv)) _AD1Interrupt(void) {  // every 30
     adc_gyro0 = ADC1BUF0;
     adc_gyro = ADC1BUF1;
     gyro_value = adc_gyro - adc_gyro0;
-    if (gyro_inc_adc < 100) { //was 100
-        gyro_value_adc_old = gyro_adc[(gyro_inc_adc)];
-        gyro_adc[(gyro_inc_adc)] = gyro_value;
-        gyro_adc_sum = gyro_adc_sum - gyro_value_adc_old + gyro_value;
-    } else {
-        gyro_inc_adc = 0;
-        gyro_value_adc_old = gyro_adc[(gyro_inc_adc)];
-        gyro_adc[(gyro_inc_adc)] = gyro_value;
-        gyro_adc_sum = gyro_adc_sum - gyro_value_adc_old + gyro_value;
-    }
+    gyro_inc_adc = gyro_inc_adc == ADC_GYRO_AVE ? 0 : gyro_inc_adc;
+
+    gyro_value_adc_old = gyro_adc[gyro_inc_adc];
+    gyro_adc[gyro_inc_adc] = gyro_value;
+    gyro_adc_sum = gyro_adc_sum - gyro_value_adc_old + gyro_value;
+
+    // if (gyro_inc_adc < 100) { //was 100
+    //     gyro_value_adc_old = gyro_adc[(gyro_inc_adc)];
+    //     gyro_adc[(gyro_inc_adc)] = gyro_value;
+    //     gyro_adc_sum = gyro_adc_sum - gyro_value_adc_old + gyro_value;
+    // } else {
+    //     gyro_inc_adc = 0;
+    //     gyro_value_adc_old = gyro_adc[(gyro_inc_adc)];
+    //     gyro_adc[(gyro_inc_adc)] = gyro_value;
+    //     gyro_adc_sum = gyro_adc_sum - gyro_value_adc_old + gyro_value;
+    // }
     //gyro_value_adc_ave = (gyro_adc_sum - 28) / 100; // - more negative = red less
     gyro_inc_adc ++;
     IFS0bits.AD1IF = 0;
@@ -310,25 +322,48 @@ void __attribute__((interrupt, no_auto_psv)) _T3Interrupt() {
 }
 
 void __attribute__((interrupt, no_auto_psv)) _T4Interrupt() {// Gyro_value calcs and value update timer; 2ms period; update every 20ms; 20us, 70us all parts
-    ///LED_R = 1;
-
+    TMR_DIFF = TMR4;
     _T4IF = 0;
-    gyro_value_adc_ave = (gyro_adc_sum + 625) / 100; //was 28/100 ;8/100
-    if (gyro_inc < 9) {  // was 9
-        gyro[gyro_inc] = gyro_value_adc_ave;
-        gyro_inc++;
-    } else {   //55 us
-        //LED_G = 1;
-        gyro[gyro_inc] = gyro_value_adc_ave;
-        gyro_value_ave = ((long) gyro[0] + gyro[1] + gyro[2] + gyro[3] + gyro[4] + gyro[5] + gyro[6] + gyro[7] + gyro[8] + gyro[9]) / 10; // 19 us
-        //gyro_value_ave = ((long) gyro[0] + gyro[1] + gyro[2] + gyro[3] + gyro[4]) / 5;
-        turn_deg_100 = (long) gyro_value_ave * 1510 / 1000; // together with above 38 us; _10==1465/10000 ; 1524 works well slow, adds 1 or 0.5 at quick 180; 760 at 5 steps
-        if (turn_deg_100 > -2 && turn_deg_100 < 2) turn_deg_100 = 0;
-        turn_deg_10 = turn_deg_10 + turn_deg_100;
-        turn_deg = turn_deg_10 / 10;
-        gyro_inc = 0;
-        gyro_update = 1;
-    }
+    gyro_value_adc_ave = (gyro_adc_sum + 62) / ADC_GYRO_AVE; //was (gyro_adc_sum + 625) / 100; - smaller makes zero creep CCW : 0 - deg grow negative
+    gyro_inc = gyro_inc == 10 ? 0 : gyro_inc;
+    static int gyro_value_adc_ave_old = 0;
+    static int gyro_value_adc_ave_sum = 0;
+    gyro_value_adc_ave_old = gyro[gyro_inc];
+    gyro[gyro_inc] = gyro_value_adc_ave;
+    gyro_value_adc_ave_sum = gyro_value_adc_ave_sum - gyro_value_adc_ave_old + gyro_value_adc_ave;
+    gyro_value_ave = gyro_value_adc_ave_sum / 10;
+    // if (gyro_value_ave > -2 && gyro_value_ave < 2) gyro_value_ave = 0;
+    gyro_inc++;
+
+    // if (gyro_value_ave > -25 && gyro_value_ave < 25) turn_deg_100 = gyro_value_ave * 40;
+    // if (gyro_value_ave > -40 && gyro_value_ave < 40) turn_deg_100 = gyro_value_ave * 30;
+    // if (gyro_value_ave > -65 && gyro_value_ave < 65) turn_deg_100 = gyro_value_ave * 25;
+    // if (gyro_value_ave > -90 && gyro_value_ave < 90) turn_deg_100 = gyro_value_ave * 20;
+    if (gyro_value_ave > -100 && gyro_value_ave < 100) turn_deg_100 = gyro_value_ave * 15.4;
+    else turn_deg_100 = gyro_value_ave * 15.2; // 203
+    // turn_deg_100 = gyro_value_ave * 15.5; // 203
+    // turn_deg_100 = (long) gyro_value_ave * 1510 / 1000; // 565
+    if (turn_deg_100 > -100 && turn_deg_100 < 100) turn_deg_100 = 0;
+    turn_deg_10 = turn_deg_10 + turn_deg_100;
+    turn_deg = turn_deg_10 / 1000;
+    gyro_update = 1;
+    TMR_DIFF = TMR4 - TMR_DIFF;
+
+    // if (gyro_inc < 9) {  // was 9
+    //     gyro[gyro_inc] = gyro_value_adc_ave;
+    //     gyro_inc++;
+    // } else {   //55 us
+    //     //LED_G = 1;
+    //     gyro[gyro_inc] = gyro_value_adc_ave;
+    //     gyro_value_ave = ((long) gyro[0] + gyro[1] + gyro[2] + gyro[3] + gyro[4] + gyro[5] + gyro[6] + gyro[7] + gyro[8] + gyro[9]) / 10; // 19 us
+    //     //gyro_value_ave = ((long) gyro[0] + gyro[1] + gyro[2] + gyro[3] + gyro[4]) / 5;
+    //     turn_deg_100 = (long) gyro_value_ave * 1510 / 1000; // together with above 38 us; _10==1465/10000 ; 1524 works well slow, adds 1 or 0.5 at quick 180; 760 at 5 steps
+    //     if (turn_deg_100 > -2 && turn_deg_100 < 2) turn_deg_100 = 0;
+    //     turn_deg_10 = turn_deg_10 + turn_deg_100;
+    //     turn_deg = turn_deg_10 / 10;
+    //     gyro_inc = 0;
+    //     gyro_update = 1;
+    // }
     //LED_G = 0;
     //LED_R = 0;
 }
@@ -635,6 +670,25 @@ int main(void) {
     spi_digit_inc = 3;
 
     while (1) {
+
+        if (turn_deg_100 < gyro_value_ave_min) {
+            gyro_value_ave_min = turn_deg_100;
+        }
+        if (turn_deg_100 > gyro_value_ave_max) {
+            gyro_value_ave_max = turn_deg_100;
+        }
+
+        // if (gyro_value_ave < gyro_value_ave_min) {
+        //     gyro_value_ave_min = gyro_value_ave;
+        // }
+        // if (gyro_value_ave > gyro_value_ave_max) {
+        //     gyro_value_ave_max = gyro_value_ave;
+        // }
+
+
+        // if (TMR4 > TMR_DIFF) {
+        //     TMR_DIFF = TMR4;
+        // }
         //LED_R = LED_R ? 0 : 1;
         // if (UART_send_trigger || !UART_done) {
         //     UART_send_trigger = 0;
@@ -642,6 +696,18 @@ int main(void) {
 
         // }
         UART_send();
+
+        if(U1STAbits.URXDA == 1) {
+            char buff = U1RXREG;
+            if (buff == 'r') { // 'r'
+            // if (buff == 0x72) { // 'r'
+                turn_deg_10 = 0;
+                gyro_value_ave_min = 0;
+                gyro_value_ave_max = 0;
+            }
+        }
+
+
         //STOP();
         //Uturn();
         //Rudder_con();
@@ -1042,9 +1108,10 @@ void Rudder_con(void) { // positive is actually left
 }
 
 void UART_send(void) {
-    #define key_len 6
-    #define val_len 7
-    #define headers_len 3
+    #define key_len 11
+    #define val_len 12
+    #define headers_len 12
+    #define blank "xxxxxxxxxxxx"
     typedef struct {
         char key[key_len];
         char value[val_len];
@@ -1054,22 +1121,85 @@ void UART_send(void) {
     } str_header;
     static str_header headers[headers_len] = {
         {
-            "adc_0:",
-            "xxxxxxx",
+            "adc_buf0   ",
+            blank,
             0,
             0,
             0
         },
         {
-            "adc_1:",
-            "xxxxxxx",
+            "adc_buf1   ",
+            blank,
             0,
             0,
             0
         },
         {
-            "adc_v:",
-            "xxxxxxx",
+            "adc_val    ",
+            blank,
+            0,
+            0,
+            0
+        },
+        {
+            "adc_sum    ",
+            blank,
+            0,
+            0,
+            0
+        },
+        {
+            "gyro_v_a_a ",
+            blank,
+            0,
+            0,
+            0
+        },
+        {
+            "gyro_val_a ",
+            blank,
+            0,
+            0,
+            0
+        },
+        {
+            "gyro_v_min ",
+            blank,
+            0,
+            0,
+            0
+        },
+        {
+            "gyro_v_max ",
+            blank,
+            0,
+            0,
+            0
+        },
+        {
+            "timer4_buf ",
+            blank,
+            0,
+            0,
+            0
+        },
+        {
+            "deg_100    ",
+            blank,
+            0,
+            0,
+            0
+        },
+        {
+            "deg_10     ",
+            blank,
+            0,
+            0,
+            0
+        },
+        {
+            "turn_deg   ",
+            blank,
             0,
             0,
             0
@@ -1097,32 +1227,98 @@ void UART_send(void) {
             UART_done = 1;
             char sign;
             unsigned int temp_value;
-            sign = adc_gyro0 < 0;
-            temp_value = adc_gyro0 < 0 ? -adc_gyro0 : adc_gyro0;
+            int temp_value_int;
+            long temp_value_long;
+            temp_value_int = adc_gyro0;
+            sign = temp_value_int >= 0;
+            temp_value = temp_value_int < 0 ? -temp_value_int : temp_value_int;
             unsigned char i;
-            char *converted = hex_to_bcd_str(temp_value, sign, 0);
+            char *converted = int_to_bcd_str(temp_value, sign, 1);
             for (i = 0; i < val_len; i++, converted++) {
                 headers[0].value[i] = *converted;
             }
-            sign = adc_gyro < 0;
-            temp_value = adc_gyro < 0 ? -adc_gyro : adc_gyro;
-            converted = hex_to_bcd_str(temp_value, sign, 0);
+            temp_value_int = adc_gyro;
+            sign = temp_value_int >= 0;
+            temp_value = temp_value_int < 0 ? -temp_value_int : temp_value_int;
+            converted = int_to_bcd_str(temp_value, sign, 2);
             for (i = 0; i < val_len; i++, converted++) {
                 headers[1].value[i] = *converted;
             }
-            sign = gyro_value < 0;
-            temp_value = gyro_value < 0 ? -gyro_value : gyro_value;
-            converted = hex_to_bcd_str(temp_value, sign, 0);
+            temp_value_int = gyro_value;
+            sign = temp_value_int >= 0;
+            temp_value = temp_value_int < 0 ? -temp_value_int : temp_value_int;
+            converted = int_to_bcd_str(temp_value, sign, 0);
             for (i = 0; i < val_len; i++, converted++) {
                 headers[2].value[i] = *converted;
             }
+            temp_value_long = gyro_adc_sum;
+            sign = temp_value_long >= 0;
+            unsigned long temp_value_u_long;
+            temp_value_u_long = temp_value_long < 0 ? -temp_value_long : temp_value_long;
+            converted = long_to_bcd_str(temp_value_u_long, sign, 0);
+            for (i = 0; i < val_len; i++, converted++) {
+                headers[3].value[i] = *converted;
+            }
+            temp_value_int = gyro_value_adc_ave;
+            sign = temp_value_int >= 0;
+            temp_value = temp_value_int < 0 ? -temp_value_int : temp_value_int;
+            converted = int_to_bcd_str(temp_value, sign, 0);
+            for (i = 0; i < val_len; i++, converted++) {
+                headers[4].value[i] = *converted;
+            }
+            temp_value_int = gyro_value_ave;
+            sign = temp_value_int >= 0;
+            temp_value = temp_value_int < 0 ? -temp_value_int : temp_value_int;
+            converted = int_to_bcd_str(temp_value, sign, 0);
+            for (i = 0; i < val_len; i++, converted++) {
+                headers[5].value[i] = *converted;
+            }
+            temp_value_int = gyro_value_ave_min;
+            sign = temp_value_int >= 0;
+            temp_value = temp_value_int < 0 ? -temp_value_int : temp_value_int;
+            converted = int_to_bcd_str(temp_value, sign, 0);
+            for (i = 0; i < val_len; i++, converted++) {
+                headers[6].value[i] = *converted;
+            }
+            temp_value_int = gyro_value_ave_max;
+            sign = temp_value_int >= 0;
+            temp_value = temp_value_int < 0 ? -temp_value_int : temp_value_int;
+            converted = int_to_bcd_str(temp_value, sign, 0);
+            for (i = 0; i < val_len; i++, converted++) {
+                headers[7].value[i] = *converted;
+            }
+            converted = int_to_bcd_str(TMR_DIFF, 1, 0);
+            for (i = 0; i < val_len; i++, converted++) {
+                headers[8].value[i] = *converted;
+            }
+            temp_value_int = turn_deg_100;
+            sign = temp_value_int >= 0;
+            temp_value = temp_value_int < 0 ? -temp_value_int : temp_value_int;
+            converted = int_to_bcd_str(temp_value, sign, 0);
+            for (i = 0; i < val_len; i++, converted++) {
+                headers[9].value[i] = *converted;
+            }
+            temp_value_long = turn_deg_10;
+            sign = temp_value_long >= 0;
+            temp_value_u_long = temp_value_long < 0 ? -temp_value_long : temp_value_long;
+            converted = long_to_bcd_str(temp_value_u_long, sign, 4);
+            for (i = 0; i < val_len; i++, converted++) {
+                headers[10].value[i] = *converted;
+            }
+            temp_value_int = turn_deg;
+            sign = temp_value_int >= 0;
+            temp_value = temp_value_int < 0 ? -temp_value_int : temp_value_int;
+            converted = int_to_bcd_str(temp_value, sign, 1);
+            for (i = 0; i < val_len; i++, converted++) {
+                headers[11].value[i] = *converted;
+            }
             // temp_value = turn_deg < 0 ? -turn_deg : turn_deg;
             // unsigned char i;
-            // char *converted = hex_to_bcd_str(temp_value, sign, 1);
+            // char *converted = int_to_bcd_str(temp_value, sign, 1);
             // for (i = 0; i < val_len; i++, converted++) {
             //     headers[0].value[i] = *converted;
             // }
-            // converted = hex_to_bcd_str(temp_value, sign, 0);
+            // converted = int_to_bcd_str(temp_value, sign, 0);
             // for (i = 0; i < val_len; i++, converted++) {
             //     headers[1].value[i] = *converted;
             // }
@@ -1139,8 +1335,9 @@ char value_to_uart(char value[], unsigned char *pos, unsigned char len) {
     return *pos < len ? 1 : 0;
 }
 
-char *hex_to_bcd_str(unsigned int value, char sign, char frac_dig) {
+char *int_to_bcd_str(unsigned int value, char sign, char frac_dig) {
     #define offset (val_len - 5)
+    #define frac_comp (frac_dig > 0 ? 1 : 0)
     char digit;
     int factor = 10000;
     char first_non_zero_number = 0;
@@ -1150,26 +1347,65 @@ char *hex_to_bcd_str(unsigned int value, char sign, char frac_dig) {
     for (i = 0; i < offset; i++) {
         result[i + 1] = ' ';
     }
-    for (i = 0; i < val_len - offset + frac_dig; i++) {
+    for (i = 0; i < val_len - offset + frac_comp; i++) {
         if (i == val_len - offset - frac_dig) {
-            result[i + offset - frac_dig] = '.';
+            result[i + offset - 1] = '.';
             continue;
         }
         digit = value / factor;
         if (digit == 0) {
             if (!first_non_zero_number) {
                 if (i < val_len - offset - 1 - frac_dig) {
-                    result[i + offset - frac_dig] = ' ';
+                    result[i + offset - frac_comp] = ' ';
                 } else {
                     first_non_zero_number = 1;
-                    result[i + offset - frac_dig] = 48;
+                    result[i + offset - frac_comp] = 48;
                 }
             } else {
-                result[i + offset - frac_dig] = 48;
+                result[i + offset - frac_comp] = 48;
             }
         } else {
             first_non_zero_number = 1;
-            result[i + offset - frac_dig] = digit + 48;
+            result[i + offset - frac_comp] = digit + 48;
+        }
+        value = value % factor;
+        factor = factor / 10;
+    }
+    return result;
+}
+
+char *long_to_bcd_str(unsigned long value, char sign, char frac_dig) {
+    #define offset_l (val_len - 10)
+    //4 292 967 295
+    char digit;
+    unsigned long factor = 1000000000;
+    char first_non_zero_number = 0;
+    static char result[val_len];
+    result[0] = sign ? '+' : '-';
+    unsigned char i;
+    for (i = 0; i < offset_l; i++) {
+        result[i + 1] = ' ';
+    }
+    for (i = 0; i < val_len - offset_l + frac_comp; i++) {
+        if (i == val_len - offset_l - frac_dig) {
+            result[i + offset_l - 1] = '.';
+            continue;
+        }
+        digit = value / factor;
+        if (digit == 0) {
+            if (!first_non_zero_number) {
+                if (i < val_len - offset_l - 1 - frac_dig) {
+                    result[i + offset_l - frac_comp] = ' ';
+                } else {
+                    first_non_zero_number = 1;
+                    result[i + offset_l - frac_comp] = 48;
+                }
+            } else {
+                result[i + offset_l - frac_comp] = 48;
+            }
+        } else {
+            first_non_zero_number = 1;
+            result[i + offset_l - frac_comp] = digit + 48;
         }
         value = value % factor;
         factor = factor / 10;
