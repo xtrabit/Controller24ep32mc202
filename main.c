@@ -56,13 +56,9 @@ void angle_tracker(void);
 int hextobcd(int x);
 void Rudder_con(void);
 //void STOP(void);
-void Test_Gyro_MIN_MAX(void);
-void Test_MIN_MAX(int x);
-void Test_MIN_MAX_unsigned(unsigned int x);
 void UART_send(void);
 char value_to_uart(char value[], unsigned char *pos, unsigned char len);
-char *int_to_bcd_str(unsigned int value, char sign, char frac_dig);
-char *long_to_bcd_str(unsigned long value, char sign, char frac_dig);
+char *hex_to_bcd_str(unsigned long value, char sign, char frac_dig);
 
 char UART_done = 1;
 char mcu_on;
@@ -895,7 +891,7 @@ void UART_send(void) {
     #define key_len 11
     #define val_len 12
     #define headers_len 10
-    #define blank "xxxxxxxxxxxx"
+    #define init_default "xxxxxxxxxxxx", 0, 0, 0
     typedef struct {
         char key[key_len];
         char value[val_len];
@@ -904,91 +900,27 @@ void UART_send(void) {
         char done;
     } str_header;
     static str_header headers[headers_len] = {
-        // {
-        //     "adc_buf0   ",
-        //     blank,
-        //     0,
-        //     0,
-        //     0
-        // },
-        // {
-        //     "adc_buf1   ",
-        //     blank,
-        //     0,
-        //     0,
-        //     0
-        // },
-        {
-            "adc_val    ",
-            blank,
-            0,
-            0,
-            0
-        },
-        {
-            "adc_sum    ",
-            blank,
-            0,
-            0,
-            0
-        },
-        {
-            "gyro_v_a_a ",
-            blank,
-            0,
-            0,
-            0
-        },
-        {
-            "gyro_val_a ",
-            blank,
-            0,
-            0,
-            0
-        },
-        {
-            "       min ",
-            blank,
-            0,
-            0,
-            0
-        },
-        {
-            "       max ",
-            blank,
-            0,
-            0,
-            0
-        },
-        {
-            "timer4_buf ",
-            blank,
-            0,
-            0,
-            0
-        },
-        {
-            "deg_per_int",
-            blank,
-            0,
-            0,
-            0
-        },
-        {
-            "deg_sum    ",
-            blank,
-            0,
-            0,
-            0
-        },
-        {
-            "turn_deg   ",
-            blank,
-            0,
-            0,
-            0
-        }
+        {"adc_val    ", init_default},
+        {"adc_sum    ", init_default},
+        {"gyro_v_a_a ", init_default},
+        {"gyro_val_a ", init_default},
+        {"       min ", init_default},
+        {"       max ", init_default},
+        {"timer4_buf ", init_default},
+        {"deg_per_int", init_default},
+        {"deg_sum    ", init_default},
+        {"turn_deg   ", init_default}
     };
+    void update_header_value(long value, str_header *header, char frac_dig) {
+        char sign = value >= 0;
+        unsigned int temp_value = value < 0 ? -value : value;
+        char *converted = hex_to_bcd_str(temp_value, sign, frac_dig);
+        unsigned char i;
+        for (i = 0; i < val_len; i++, converted++) {
+            header->value[i] = *converted;
+        }
+    }
+
     static unsigned char h_pos = 0;
 
     if (U1STAbits.UTXEN && U1STAbits.TRMT && UART_done == 0) {
@@ -1009,104 +941,18 @@ void UART_send(void) {
         if (h_pos == headers_len) {
             h_pos = 0;
             UART_done = 1;
-            char sign;
-            unsigned int temp_value;
-            int temp_value_int;
-            long temp_value_long;
-            unsigned char i;
-            char *converted;
-            unsigned long temp_value_u_long;
-            // temp_value_int = adc_gyro_ref;
-            // sign = temp_value_int >= 0;
-            // temp_value = temp_value_int < 0 ? -temp_value_int : temp_value_int;
-            // converted = int_to_bcd_str(temp_value, sign, 0);
-            // for (i = 0; i < val_len; i++, converted++) {
-            //     headers[0].value[i] = *converted;
-            // }
-            // temp_value_int = adc_gyro_input;
-            // sign = temp_value_int >= 0;
-            // temp_value = temp_value_int < 0 ? -temp_value_int : temp_value_int;
-            // converted = int_to_bcd_str(temp_value, sign, 0);
-            // for (i = 0; i < val_len; i++, converted++) {
-            //     headers[1].value[i] = *converted;
-            // }
-            temp_value_int = adc_gyro_value;
-            sign = temp_value_int >= 0;
-            temp_value = temp_value_int < 0 ? -temp_value_int : temp_value_int;
-            converted = int_to_bcd_str(temp_value, sign, 0);
-            for (i = 0; i < val_len; i++, converted++) {
-                headers[0].value[i] = *converted;
-            }
-            temp_value_long = adc_gyro_sum;
-            sign = temp_value_long >= 0;
-            temp_value_u_long = temp_value_long < 0 ? -temp_value_long : temp_value_long;
-            converted = long_to_bcd_str(temp_value_u_long, sign, 0);
-            for (i = 0; i < val_len; i++, converted++) {
-                headers[1].value[i] = *converted;
-            }
-            temp_value_int = gyro_value_comp;
-            sign = temp_value_int >= 0;
-            temp_value = temp_value_int < 0 ? -temp_value_int : temp_value_int;
-            converted = int_to_bcd_str(temp_value, sign, 0);
-            for (i = 0; i < val_len; i++, converted++) {
-                headers[2].value[i] = *converted;
-            }
-            temp_value_int = gyro_value_ave;
-            sign = temp_value_int >= 0;
-            temp_value = temp_value_int < 0 ? -temp_value_int : temp_value_int;
-            converted = int_to_bcd_str(temp_value, sign, 0);
-            for (i = 0; i < val_len; i++, converted++) {
-                headers[3].value[i] = *converted;
-            }
-            temp_value_int = display_min;
-            sign = temp_value_int >= 0;
-            temp_value = temp_value_int < 0 ? -temp_value_int : temp_value_int;
-            converted = int_to_bcd_str(temp_value, sign, 0);
-            for (i = 0; i < val_len; i++, converted++) {
-                headers[4].value[i] = *converted;
-            }
-            temp_value_int = display_max;
-            sign = temp_value_int >= 0;
-            temp_value = temp_value_int < 0 ? -temp_value_int : temp_value_int;
-            converted = int_to_bcd_str(temp_value, sign, 0);
-            for (i = 0; i < val_len; i++, converted++) {
-                headers[5].value[i] = *converted;
-            }
-            converted = int_to_bcd_str(TMR_DIFF, 1, 0);
-            for (i = 0; i < val_len; i++, converted++) {
-                headers[6].value[i] = *converted;
-            }
-            temp_value_int = deg_per_interrupt;
-            sign = temp_value_int >= 0;
-            temp_value = temp_value_int < 0 ? -temp_value_int : temp_value_int;
-            converted = int_to_bcd_str(temp_value, sign, 4);
-            for (i = 0; i < val_len; i++, converted++) {
-                headers[7].value[i] = *converted;
-            }
-            temp_value_long = turn_deg_sum;
-            sign = temp_value_long >= 0;
-            temp_value_u_long = temp_value_long < 0 ? -temp_value_long : temp_value_long;
-            converted = long_to_bcd_str(temp_value_u_long, sign, 4);
-            for (i = 0; i < val_len; i++, converted++) {
-                headers[8].value[i] = *converted;
-            }
-            temp_value_int = turn_deg_x_10;
-            sign = temp_value_int >= 0;
-            temp_value = temp_value_int < 0 ? -temp_value_int : temp_value_int;
-            converted = int_to_bcd_str(temp_value, sign, 1);
-            for (i = 0; i < val_len; i++, converted++) {
-                headers[9].value[i] = *converted;
-            }
-            // temp_value = turn_deg_x_10 < 0 ? -turn_deg_x_10 : turn_deg_x_10;
-            // unsigned char i;
-            // char *converted = int_to_bcd_str(temp_value, sign, 1);
-            // for (i = 0; i < val_len; i++, converted++) {
-            //     headers[0].value[i] = *converted;
-            // }
-            // converted = int_to_bcd_str(temp_value, sign, 0);
-            // for (i = 0; i < val_len; i++, converted++) {
-            //     headers[1].value[i] = *converted;
-            // }
+            // update_header_value((long)adc_gyro_ref, &headers[0], 0);
+            // update_header_value((long)adc_gyro_input, &headers[0], 0);
+            update_header_value((long)adc_gyro_value, &headers[0], 0);
+            update_header_value(adc_gyro_sum, &headers[1], 0);
+            update_header_value((long)gyro_value_comp, &headers[2], 0);
+            update_header_value((long)gyro_value_ave, &headers[3], 0);
+            update_header_value((long)display_min, &headers[4], 0);
+            update_header_value((long)display_max, &headers[5], 0);
+            update_header_value((long)TMR_DIFF, &headers[6], 0);
+            update_header_value((long)deg_per_interrupt, &headers[7], 4);
+            update_header_value(turn_deg_sum, &headers[8], 4);
+            update_header_value(turn_deg_x_10, &headers[9], 1);
         }
     }
 }
@@ -1120,47 +966,11 @@ char value_to_uart(char value[], unsigned char *pos, unsigned char len) {
     return *pos < len ? 1 : 0;
 }
 
-char *int_to_bcd_str(unsigned int value, char sign, char frac_dig) {
-    #define offset (val_len - 5)
+char *hex_to_bcd_str(unsigned long value, char sign, char frac_dig) {
     #define frac_comp (frac_dig > 0 ? 1 : 0)
-    char digit;
-    int factor = 10000;
-    char first_non_zero_number = 0;
-    static char result[val_len];
-    result[0] = sign ? '+' : '-';
-    unsigned char i;
-    for (i = 0; i < offset; i++) {
-        result[i + 1] = ' ';
-    }
-    for (i = 0; i < val_len - offset + frac_comp; i++) {
-        if (i == val_len - offset - frac_dig) {
-            result[i + offset - 1] = '.';
-            continue;
-        }
-        digit = value / factor;
-        if (digit == 0) {
-            if (!first_non_zero_number) {
-                if (i < val_len - offset - 1 - frac_dig) {
-                    result[i + offset - frac_comp] = ' ';
-                } else {
-                    first_non_zero_number = 1;
-                    result[i + offset - frac_comp] = 48;
-                }
-            } else {
-                result[i + offset - frac_comp] = 48;
-            }
-        } else {
-            first_non_zero_number = 1;
-            result[i + offset - frac_comp] = digit + 48;
-        }
-        value = value % factor;
-        factor = factor / 10;
-    }
-    return result;
-}
-
-char *long_to_bcd_str(unsigned long value, char sign, char frac_dig) {
-    #define offset_l (val_len - 10)
+    #define num_len 10
+    #define offset (val_len - num_len)
+    #define str_position (i + offset - frac_comp)
     //4 292 967 295
     char digit;
     unsigned long factor = 1000000000;
@@ -1168,29 +978,29 @@ char *long_to_bcd_str(unsigned long value, char sign, char frac_dig) {
     static char result[val_len];
     result[0] = sign ? '+' : '-';
     unsigned char i;
-    for (i = 0; i < offset_l; i++) {
+    for (i = 0; i < offset; i++) {
         result[i + 1] = ' ';
     }
-    for (i = 0; i < val_len - offset_l + frac_comp; i++) {
-        if (i == val_len - offset_l - frac_dig) {
-            result[i + offset_l - 1] = '.';
+    for (i = 0; i < num_len + frac_comp; i++) {
+        if (i == num_len - frac_dig) {
+            result[i + offset - 1] = '.';
             continue;
         }
         digit = value / factor;
         if (digit == 0) {
             if (!first_non_zero_number) {
-                if (i < val_len - offset_l - 1 - frac_dig) {
-                    result[i + offset_l - frac_comp] = ' ';
+                if (i < num_len - 1 - frac_dig) {
+                    result[str_position] = ' ';
                 } else {
                     first_non_zero_number = 1;
-                    result[i + offset_l - frac_comp] = 48;
+                    result[str_position] = 48;
                 }
             } else {
-                result[i + offset_l - frac_comp] = 48;
+                result[str_position] = 48;
             }
         } else {
             first_non_zero_number = 1;
-            result[i + offset_l - frac_comp] = digit + 48;
+            result[str_position] = digit + 48;
         }
         value = value % factor;
         factor = factor / 10;
